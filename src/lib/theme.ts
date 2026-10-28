@@ -7,7 +7,10 @@ export const FINISH_KEY = "pp-finish";
 export const FINISHES: readonly Finish[] = ["electric", "graphite", "chai"];
 
 /** Desktop stage where the 3D phone is the default (WebGL is checked later, on the client). */
-export const STAGE_3D_QUERY = "(min-width: 900px) and (prefers-reduced-motion: no-preference)";
+export const STAGE_3D_QUERY = "(min-width: 900px) and (min-height: 520px) and (prefers-reduced-motion: no-preference)";
+
+/** Phone mode: the site is the phone (no drawn frame). Matches the CSS in globals.css. */
+export const PHONE_QUERY = "(max-width: 599.98px), (max-height: 519.98px)";
 
 /**
  * Events that mean someone is there, so the 3D stage is worth loading. The init script notes the
@@ -16,13 +19,14 @@ export const STAGE_3D_QUERY = "(min-width: 900px) and (prefers-reduced-motion: n
 export const STAGE_INTENT = ["pointermove", "pointerdown", "wheel", "keydown", "touchstart"];
 
 /**
- * Runs in <head> before first paint: applies the saved (or system) theme and
+ * Runs in <head> before first paint: tracks the visual viewport (--vvh / --vvt: the height mobile
+ * browsers leave between their toolbars and above the keyboard), applies the saved (or system) theme and
  * the saved phone finish so neither flashes, skips the lock screen for deep links
  * and repeat visits this session, and holds the CSS phone back briefly on desktop
  * so the 3D phone can make the entrance. Kept dependency-free on purpose.
  */
 export function buildInitScript(appIds: readonly string[]) {
-  return `(function(){var d=document.documentElement;try{var h=location.hash.slice(1).split("/")[0];if(${JSON.stringify(appIds)}.indexOf(h)>-1){d.setAttribute("data-deeplink","");d.setAttribute("data-unlocked","")}}catch(e){}try{if(sessionStorage.getItem("pp-unlocked")==="1")d.setAttribute("data-unlocked","")}catch(e){}try{var t=localStorage.getItem("${THEME_KEY}");if(t!=="light"&&t!=="dark"){t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}d.classList.toggle("dark",t==="dark");var f=localStorage.getItem("${FINISH_KEY}");if(f==="graphite"||f==="chai")d.setAttribute("data-finish",f);if(localStorage.getItem("pp-text")==="large")d.setAttribute("data-text","large");var r=localStorage.getItem("pp-motion")==="reduce";if(r)d.setAttribute("data-reduce-motion","");if(!r&&matchMedia("${STAGE_3D_QUERY}").matches){d.setAttribute("data-stage-wait","");var n=${JSON.stringify(STAGE_INTENT)},k=function(){d.setAttribute("data-intent","");n.forEach(function(x){removeEventListener(x,k,true)})};n.forEach(function(x){addEventListener(x,k,{capture:true,passive:true})})}}catch(e){}})()`;
+  return `(function(){var d=document.documentElement;try{var v=window.visualViewport;if(v){var u=function(){if(Math.abs(v.scale-1)>0.01)return;d.style.setProperty("--vvh",v.height+"px");d.style.setProperty("--vvt",v.offsetTop+"px")};u();v.addEventListener("resize",u);v.addEventListener("scroll",u)}}catch(e){}try{var h=location.hash.slice(1).split("/")[0];if(${JSON.stringify(appIds)}.indexOf(h)>-1){d.setAttribute("data-deeplink","");d.setAttribute("data-unlocked","")}}catch(e){}try{if(sessionStorage.getItem("pp-unlocked")==="1")d.setAttribute("data-unlocked","")}catch(e){}try{var t=localStorage.getItem("${THEME_KEY}");if(t!=="light"&&t!=="dark"){t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}d.classList.toggle("dark",t==="dark");var f=localStorage.getItem("${FINISH_KEY}");if(f==="graphite"||f==="chai")d.setAttribute("data-finish",f);if(localStorage.getItem("pp-text")==="large")d.setAttribute("data-text","large");var r=localStorage.getItem("pp-motion")==="reduce";if(r)d.setAttribute("data-reduce-motion","");if(!r&&matchMedia("${STAGE_3D_QUERY}").matches){d.setAttribute("data-stage-wait","");var n=${JSON.stringify(STAGE_INTENT)},k=function(){d.setAttribute("data-intent","");n.forEach(function(x){removeEventListener(x,k,true)})};n.forEach(function(x){addEventListener(x,k,{capture:true,passive:true})})}}catch(e){}})()`;
 }
 
 export function readStored<T extends string>(

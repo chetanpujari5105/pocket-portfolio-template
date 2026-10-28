@@ -3,6 +3,16 @@
 A portfolio you use like a phone. Everything visitors read is sample content for "Alex Rivera".
 Replace it with yours in four steps. You need Node.js 20.9+ (LTS) and Git.
 
+## The quick way: let Claude Code do it
+
+Every prompt from the guide *Build Your Own Pocket Portfolio* is in [`prompts/`](prompts/), one file
+each. This template already includes everything the build prompts make (up to v5: fits every
+phone, folders and the App Library, instant app opens), so you only need
+[`prompts/02-personalize.md`](prompts/02-personalize.md): fill in a `my-content.md` worksheet,
+open Claude Code in this folder and paste the prompt.
+[`prompts/09-fix-list.md`](prompts/09-fix-list.md) is for changes afterwards. The steps below
+are the same work by hand.
+
 ## 1. Fill in `/content`
 
 Open each file in `content/` and change every line marked `// ✏️ EDIT:`. Start with

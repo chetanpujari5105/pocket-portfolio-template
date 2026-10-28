@@ -81,9 +81,12 @@ export function ImpactWidget() {
       data-app-icon="journey-widget"
       onClick={() => openApp("journey")}
       aria-label={`Impact: ${STATS.map((s) => `${s.format(s.value)} ${s.label}`).join(", ")}. Open Journey`}
-      className="icon-press col-span-4 flex flex-col items-center gap-[5px] select-none"
+      className="icon-press flex size-full flex-col items-center gap-[5px] select-none"
     >
-      <span className="wiggle-item glass-dark widget-r flex h-[calc(var(--icon)*2+18px)] w-full items-center gap-3 overflow-hidden px-3.5 text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.18)] transition-transform duration-150 ease-out [.icon-press:active_&]:scale-[0.97]">
+      <span
+        data-widget-tile
+        className="wiggle-item glass-dark [container-type:size] flex min-h-0 w-full flex-1 items-center gap-[3.4cqw] overflow-hidden widget-r px-[4cqw] text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.18)] transition-transform duration-150 ease-out [.icon-press:active_&]:scale-[0.97]"
+      >
         <svg
           viewBox={`0 0 ${COLS} ${ROWS}`}
           className="h-[78%] w-[54%] shrink-0"
@@ -101,15 +104,13 @@ export function ImpactWidget() {
             />
           ))}
         </svg>
-        <span className="grid flex-1 grid-cols-2 gap-x-2 gap-y-2 text-left">
+        <span className="grid min-w-0 flex-1 grid-cols-2 gap-x-[2cqw] gap-y-[min(8px,5cqh)] text-left">
           {STATS.map((s) => (
-            <span key={s.label} className="flex flex-col leading-none">
-              <span className="text-[17px] font-bold tracking-tight tabular-nums">
+            <span key={s.label} className="flex min-w-0 flex-col leading-none">
+              <span className="text-[clamp(14px,min(4.6cqw,13cqh),18px)] font-bold tracking-tight whitespace-nowrap tabular-nums">
                 <CountUp value={s.value} format={s.format} />
               </span>
-              <span className="mt-1 text-[10.5px] font-medium text-white/70">
-                {s.label}
-              </span>
+              <span className="mt-1 truncate text-[clamp(9.5px,min(2.9cqw,8cqh),11px)] font-medium text-white/70">{s.label}</span>
             </span>
           ))}
         </span>

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/app-shell";
 import { openApp } from "@/lib/router";
 import { useOS } from "@/lib/store";
+import { blurOf } from "@/lib/placeholders";
 import { countLabel } from "@/lib/utils";
 
 const featured = courses.find((c) => c.featured) ?? courses[0];
@@ -44,6 +45,7 @@ function CourseDetail({ id }: { id: string }) {
       <div className="relative aspect-video overflow-hidden rounded-[18px] bg-app-group">
         <Image
           src={course.image}
+          {...blurOf(course.image)}
           alt=""
           fill
           sizes="(max-width: 600px) 100vw, 400px"
@@ -94,6 +96,7 @@ export default function CoursesApp() {
           action={
             <Image
               src={profile.avatar}
+              {...blurOf(profile.avatar)}
               alt={profile.name}
               width={36}
               height={36}
@@ -130,6 +133,7 @@ export default function CoursesApp() {
               <span className="relative mt-3 block aspect-video overflow-hidden rounded-[14px] shadow-lg">
                 <Image
                   src={featured.image}
+                  {...blurOf(featured.image)}
                   alt=""
                   fill
                   sizes="(max-width: 600px) 100vw, 380px"
@@ -172,6 +176,7 @@ export default function CoursesApp() {
                   <span className="relative h-[48px] w-[76px] shrink-0 overflow-hidden rounded-[10px] bg-app-background">
                     <Image
                       src={c.image}
+                      {...blurOf(c.image)}
                       alt=""
                       fill
                       sizes="80px"

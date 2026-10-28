@@ -3,15 +3,25 @@
 A personal website you use like a phone. On desktop a 3D phone sits in a calm studio: drag beside it
 to turn it over, and use its screen like a real phone. Every section is an app on the home screen
 (Courses, Journey, Expertise, Platforms, Reviews, Projects, Blog, Services, Contact, Settings), with a
-Socials folder, a lock screen, two home pages (page 2 has a live GitHub heatmap), Control Center, an
+Socials folder, a lock screen, home pages (one has a live GitHub heatmap), Control Center, an
 app switcher, Spotlight search (⌘K), deep links (`/#courses`) and light/dark themes. Below 600px the
 site *is* the phone, and it installs to a home screen as an app.
+
+- **Fits every phone.** The home screen works out its columns, icon size and pages from the screen
+  it's on, and it's tested at 17 sizes, from 320×568 to landscape tablets, with browser toolbars and
+  the keyboard showing.
+- **A home screen visitors can edit.** Long-press (or right-click) an icon to move apps and widgets,
+  make folders, remove apps, edit the dock and open the App Library. Settings → Home Screen resets it.
+  Changes stay in the visitor's browser.
+- **Fast.** Every app's code is on the device before the first tap, so an app opens in the same frame
+  as the tap. A service worker makes repeat visits load almost at once, and offline after one visit.
 
 Built with Next.js 16 (App Router, Cache Components), React 19, Tailwind CSS v4, Motion, Zustand,
 Zod and React Three Fiber.
 
 **New here? Read [START-HERE.md](START-HERE.md).** All content is sample content for "Alex Rivera";
 every field to change is marked `// ✏️ EDIT:` in `content/*.ts` (see [CONTENT.md](CONTENT.md)).
+The Claude Code prompts from the guide *Build Your Own Pocket Portfolio* are in [`prompts/`](prompts/).
 
 ## Run locally
 
@@ -36,15 +46,27 @@ npm run lint          # ESLint
 npm run typecheck     # TypeScript
 npm run content:check # validate content/*.ts against the schemas
 npx playwright install chromium   # once
-npm test              # Playwright: smoke tests + visual snapshots (builds and serves on :3100)
+npm test              # Playwright, all checks below (builds and serves on :3100)
 npx playwright test --update-snapshots   # after changing content or design
 ```
+
+`npm test` covers the smoke tests, visual snapshots, the 17-size fit check (`tests/fit.spec.ts`,
+sizes in `tests/devices.json`), home-screen editing (`tests/home-edit.spec.ts`) and, last and on
+their own, launch timings on a phone slowed to 4× (`tests/speed.spec.ts`). The speed target is
+"moving within 50 ms of the tap". Headless Chromium adds a short stall of its own, so a time over
+50 ms is noted in the report and only one over 120 ms fails.
 
 `npm test` reuses a server already running on port 3100. If another app holds that port, run
 `PORT=3200 npm test`.
 
-Extra scripts (run against a server on :3100): `node scripts/check-os.mjs <outDir>` (click-through),
-`node scripts/a11y.mjs` (axe + keyboard).
+Extra scripts (run against a server on :3100):
+- `node scripts/check-os.mjs <outDir>`: a click-through.
+- `node scripts/a11y.mjs`: axe and keyboard checks.
+- `node scripts/fit-shots.mjs`: screenshots at all 17 sizes, to `screenshots/fit/`.
+- `node scripts/speed-moments.mjs` and `node scripts/longtasks.mjs`: launch, switch and swipe timings, and long tasks.
+
+`npm run build` also writes the service worker (`public/sw.js`, from `sw/sw.ts`). Before that,
+`prebuild` regenerates the blurred image previews in `src/lib/placeholders.ts`.
 
 ## Deploy to Vercel
 

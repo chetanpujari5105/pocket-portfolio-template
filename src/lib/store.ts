@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 import type { AppId } from "@content/schema";
+import { defaultLayout, homeGeometry, readHome, sanitize, writeHome, type HomeGeometry, type HomeLayout } from "@/lib/home";
 import { readStored, writeStored, type Finish } from "@/lib/theme";
 
 export type Wallpaper = "ribbons" | "aurora" | "dusk";
@@ -18,6 +19,13 @@ export type Route = {
 export type PillIcon = "check" | "moon" | "sun" | "link";
 export type PillEvent = { kind: "done" | "info" | "progress"; text: string; id: number; icon?: PillIcon };
 
+/** Home-screen editing overlays (all drawn by the lazily loaded editor). */
+export type HomeSheet =
+  | { kind: "menu"; key: string }
+  | { kind: "remove"; key: string; folder?: string }
+  | { kind: "library" }
+  | { kind: "reset" };
+
 type OSState = {
   route: Route;
   finish: Finish;
@@ -34,8 +42,17 @@ type OSState = {
   homePage: number;
   /** Apps opened this session, most recent first (app switcher) */
   recents: AppId[];
-  /** Home icon order (ids), saved after rearranging in jiggle mode */
-  iconOrder: string[] | null;
+  /** Home screen: grid, dock and folders, saved after every edit (`pp-home-v2`) */
+  home: HomeLayout;
+  /** Measured grid for the current screen (columns, rows, icon size) */
+  homeGeo: HomeGeometry;
+  /** While an icon is dragged: the grid and dock as they would be if it were dropped now */
+  homePreview: { grid: string[]; dock: string[] } | null;
+  homeSheet: HomeSheet | null;
+  /** The entry a long-press started on, so the drag can carry on into edit mode */
+  editPress: { key: string; x: number; y: number } | null;
+  /** A folder just made: it opens with its name field focused */
+  renameFolder: string | null;
   pill: PillEvent | null;
   /** Pre-filled subject for the Contact app ("Let's talk" from a service) */
   contactSubject: string;
@@ -52,7 +69,9 @@ type OSState = {
   setBrightness: (value: number) => void;
   setHomePage: (page: number) => void;
   forgetRecent: (app: AppId) => void;
-  setIconOrder: (order: string[]) => void;
+  setHome: (layout: HomeLayout) => void;
+  setHomeGeo: (geo: HomeGeometry) => void;
+  setHomeSheet: (sheet: HomeSheet | null) => void;
   showPill: (kind: PillEvent["kind"], text: string, icon?: PillIcon) => number;
   hidePill: (id?: number) => void;
   setContactSubject: (subject: string) => void;
@@ -63,7 +82,6 @@ export const PREF_KEYS = {
   wallpaper: "pp-wallpaper",
   reduceMotion: "pp-motion",
   largeText: "pp-text",
-  iconOrder: "pp-icon-order",
 } as const;
 
 /** Session flag: the lock screen shows once per browser session. */
@@ -102,7 +120,12 @@ export const useOS = create<OSState>()((set, get) => ({
   brightness: 1,
   homePage: 0,
   recents: [],
-  iconOrder: null,
+  home: defaultLayout(),
+  homeGeo: homeGeometry(390, 844, { top: 0, right: 0, bottom: 0, left: 0 }, false),
+  homePreview: null,
+  homeSheet: null,
+  editPress: null,
+  renameFolder: null,
   pill: null,
   contactSubject: "",
   setRoute: (route) =>
@@ -130,7 +153,7 @@ export const useOS = create<OSState>()((set, get) => ({
     set({ largeText: on });
   },
   setSpotlightOpen: (spotlightOpen) => set({ spotlightOpen }),
-  setWiggle: (wiggle) => set({ wiggle }),
+  setWiggle: (wiggle) => set(wiggle ? { wiggle } : { wiggle, homePreview: null, editPress: null }),
   unlock: () => {
     writeSession(UNLOCK_KEY, "1");
     document.documentElement.setAttribute("data-unlocked", "");
@@ -141,10 +164,13 @@ export const useOS = create<OSState>()((set, get) => ({
   setBrightness: (brightness) => set({ brightness: Math.min(1, Math.max(0.4, brightness)) }),
   setHomePage: (homePage) => set({ homePage }),
   forgetRecent: (app) => set((s) => ({ recents: s.recents.filter((a) => a !== app) })),
-  setIconOrder: (iconOrder) => {
-    writeStored(PREF_KEYS.iconOrder, JSON.stringify(iconOrder));
-    set({ iconOrder });
+  setHome: (layout) => {
+    const home = sanitize(layout) ?? defaultLayout();
+    writeHome(home);
+    set({ home });
   },
+  setHomeGeo: (homeGeo) => set({ homeGeo }),
+  setHomeSheet: (homeSheet) => set({ homeSheet }),
   showPill: (kind, text, icon) => {
     const id = ++pillSeq;
     window.clearTimeout(pillTimer);
@@ -158,21 +184,13 @@ export const useOS = create<OSState>()((set, get) => ({
   },
   setContactSubject: (contactSubject) => set({ contactSubject }),
   hydratePrefs: () => {
-    let iconOrder: string[] | null = null;
-    try {
-      const raw = localStorage.getItem(PREF_KEYS.iconOrder);
-      const parsed: unknown = raw ? JSON.parse(raw) : null;
-      if (Array.isArray(parsed) && parsed.every((x) => typeof x === "string")) iconOrder = parsed;
-    } catch {
-      // Unreadable order: keep the default layout.
-    }
     set({
       finish: readStored("pp-finish", ["electric", "graphite", "chai"] as const) ?? "electric",
       wallpaper: readStored(PREF_KEYS.wallpaper, WALLPAPERS) ?? "ribbons",
       reduceMotion: readStored(PREF_KEYS.reduceMotion, ["reduce", "auto"] as const) === "reduce",
       largeText: readStored(PREF_KEYS.largeText, ["large", "default"] as const) === "large",
       locked: !document.documentElement.hasAttribute("data-unlocked") && readSession(UNLOCK_KEY) !== "1",
-      iconOrder,
+      home: readHome(),
     });
   },
 }));

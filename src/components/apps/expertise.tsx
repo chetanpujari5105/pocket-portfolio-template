@@ -8,6 +8,7 @@ import { services } from "@content/services";
 import { AppHeader, AppScreen, ListGroup, ListRow, Sheet, useLastValue } from "@/components/ui/app-shell";
 import { openApp } from "@/lib/router";
 import { useOS } from "@/lib/store";
+import { blurOf } from "@/lib/placeholders";
 
 function AreaSheet({ id }: { id: string }) {
   const area = expertise.find((e) => e.id === id);
@@ -38,7 +39,7 @@ function AreaSheet({ id }: { id: string }) {
               onClick={() => openApp("courses", c.id)}
               leading={
                 <span className="relative block h-9 w-14 overflow-hidden rounded-[8px]">
-                  <Image src={c.image} alt="" fill sizes="56px" className="object-cover" />
+                  <Image src={c.image} {...blurOf(c.image)} alt="" fill sizes="56px" className="object-cover" />
                 </span>
               }
               title={<span className="line-clamp-2 text-[14px]">{c.title}</span>}

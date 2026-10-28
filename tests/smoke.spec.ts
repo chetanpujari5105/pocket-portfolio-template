@@ -123,11 +123,17 @@ test("Spotlight finds a course and opens it", async ({ page }) => {
   await expect(page).toHaveURL(new RegExp(`#courses/${featured.id}$`));
 });
 
+// The folder holds the profiles that aren't on the home screen or in the dock themselves
+// (with fewer than two, there's no folder: they sit on the home screen)
+const onHome = new Set([...appsLayout.block, ...appsLayout.row, ...appsLayout.links, ...appsLayout.dock].map((i) => i.id));
+const inFolder = profile.socials.filter((s) => !onHome.has(s.id));
+
 test("Socials folder opens and lists profiles", async ({ page }) => {
+  test.skip(inFolder.length < 2, "fewer than two profiles off the home screen, so no Socials folder");
   await home(page);
-  await page.getByRole("button", { name: "Open Socials", exact: true }).click();
+  await page.getByRole("button", { name: "Open Socials folder", exact: true }).click();
   await expect(page).toHaveURL(/#socials$/);
-  await expect(page.getByRole("dialog", { name: "Socials" }).getByRole("link", { name: new RegExp(profile.socials[0].label) })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Socials" }).getByRole("link", { name: new RegExp(inFolder[0].label) }).first()).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page).not.toHaveURL(/#socials$/);
 });

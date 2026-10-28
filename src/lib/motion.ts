@@ -7,8 +7,19 @@ import { animateSingleValue, motionValue, useTransform, type MotionValue, type T
  * can be grabbed or reversed mid-flight.
  */
 
-type Spring = { type: "spring"; stiffness: number; damping: number; mass: number };
-const spring = (stiffness: number, damping: number): Spring => ({ type: "spring", stiffness, damping, mass: 1 });
+type Spring = { type: "spring"; stiffness: number; damping: number; mass: number; restDelta?: number; restSpeed?: number };
+const spring = (stiffness: number, damping: number, rest?: Pick<Spring, "restDelta" | "restSpeed">): Spring => ({
+  type: "spring",
+  stiffness,
+  damping,
+  mass: 1,
+  ...rest,
+});
+/*
+ * Window progress runs 0 → 1, where Motion's default rest test (0.01 per second) keeps a spring
+ * ticking long after the eye stops seeing movement; 0.003 of a screen is under a pixel.
+ */
+const PROGRESS_REST = { restDelta: 0.003, restSpeed: 0.05 };
 
 export const springs = {
   /** Presses, toggles, selection indicators */
@@ -17,10 +28,10 @@ export const springs = {
   smooth: spring(300, 32),
   /** Icons flying in, larger surfaces settling */
   gentle: spring(170, 26),
-  /** App launch: icon → full screen */
-  launch: spring(380, 34),
-  /** App close back into its icon */
-  home: spring(420, 36),
+  /** App launch: icon → full screen, settled in ~320 ms, readable (40%) by ~70 ms */
+  launch: spring(420, 38, PROGRESS_REST),
+  /** App close back into its icon, ~270 ms */
+  home: spring(520, 44, PROGRESS_REST),
   /** Release after a press: a touch of overshoot so it feels physical */
   release: spring(600, 24),
 } as const;

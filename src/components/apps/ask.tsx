@@ -11,6 +11,7 @@ import { AppHeader, AppScreen } from "@/components/ui/app-shell";
 import { ALLOWED_LINKS, COURSE_TOKEN, type AskMessage, type AskResult } from "@/lib/ask";
 import { openApp } from "@/lib/router";
 import { cn } from "@/lib/utils";
+import { blurOf } from "@/lib/placeholders";
 
 const URL_RE = /(https?:\/\/[^\s)]+)/g;
 
@@ -41,7 +42,7 @@ function CourseCard({ id }: { id: string }) {
       className="mt-2 flex w-full items-center gap-2.5 rounded-[12px] bg-app-background p-2 text-left text-app-ink transition-transform duration-150 ease-out active:scale-[0.98]"
     >
       <span className="relative block h-10 w-16 shrink-0 overflow-hidden rounded-[8px]">
-        <Image src={c.image} alt="" fill sizes="64px" className="object-cover" />
+        <Image src={c.image} {...blurOf(c.image)} alt="" fill sizes="64px" className="object-cover" />
       </span>
       <span className="min-w-0">
         <span className="line-clamp-2 block text-[13px] leading-snug font-semibold">{c.title}</span>

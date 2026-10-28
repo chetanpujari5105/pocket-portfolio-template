@@ -48,3 +48,6 @@ next-env.d.ts
 /my-photos/
 /linkedin.txt
 /screenshots/
+
+# Built by scripts/build-sw.mjs after next build
+/public/sw.js

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { useOS } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 function formatTime(d: Date) {
@@ -30,9 +31,12 @@ function Clock() {
 
 /** Status bar drawn inside the phone (hidden on real phones, which have their own). */
 export function StatusBar({ onApp }: { onApp: boolean }) {
+  // Edit mode: like iOS, the status bar steps aside for the Done and + pills
+  const editing = useOS((s) => s.wiggle);
   return (
     <div
       className={cn(
+        editing && !onApp && "opacity-0",
         // Centred on the cutout's midline; time and indicators each centred in their "ear" beside it
         "pointer-events-none absolute inset-x-0 top-0 z-70 hidden h-[calc(var(--phone-h)*0.0563)] grid-cols-[1fr_30%_1fr] items-center px-[3cqw] font-[system-ui,-apple-system,sans-serif] text-[clamp(13px,4.1cqw,16px)] font-semibold tracking-[-0.01em] transition-colors duration-200 tab:grid",
         onApp ? "text-app-ink" : "text-white",

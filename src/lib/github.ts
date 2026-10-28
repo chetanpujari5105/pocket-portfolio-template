@@ -8,7 +8,7 @@ export type ContributionDay = { date: string; level: ContributionLevel; count: n
 /** `days` covers the last HEATMAP_WEEKS weeks, oldest first, starting on a Sunday. */
 export type Contributions = { user: string; total: number | null; days: ContributionDay[] };
 
-export const HEATMAP_WEEKS = 17;
+export const HEATMAP_WEEKS = 34;
 
 const LEVELS: Record<string, ContributionLevel> = {
   NONE: 0,

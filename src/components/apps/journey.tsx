@@ -7,6 +7,7 @@ import { profile } from "@content/profile";
 import { story } from "@content/story";
 import { timeline } from "@content/timeline";
 import { AppHeader, AppScreen, ListGroup, ListRow } from "@/components/ui/app-shell";
+import { blurOf } from "@/lib/placeholders";
 
 /** Roots-to-Leaves: a plant that gains a leaf each year and becomes a tree at the end. */
 function Plant({ stage, last }: { stage: number; last: boolean }) {
@@ -43,6 +44,7 @@ export default function JourneyApp() {
       <section className="mb-6 flex flex-col items-center rounded-[18px] bg-app-group px-4 py-5 text-center">
         <Image
           src={profile.avatar}
+          {...blurOf(profile.avatar)}
           alt={profile.name}
           width={96}
           height={96}

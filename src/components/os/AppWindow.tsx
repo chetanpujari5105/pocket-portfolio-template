@@ -1,28 +1,25 @@
 "use client";
 
 import {
+  startTransition,
   useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
   type CSSProperties,
   type KeyboardEvent,
-  type ReactNode,
   type RefObject,
 } from "react";
-import {
-  animate,
-  useMotionValue,
-  useTransform,
-  type AnimationPlaybackControls,
-} from "motion/react";
+import { useMotionValue, useTransform, type AnimationPlaybackControls } from "motion/react";
 import * as m from "motion/react-m";
 import { useDrag } from "@use-gesture/react";
 
 import { appsLayout, askApp } from "@content/apps";
+import { APPS } from "@/components/apps/registry";
 import type { AppId } from "@content/schema";
-import { originRect, type Rect } from "@/lib/launch";
-import { dismissProgress, haptic, launchProgress, rubberBand, springs, withVelocity } from "@/lib/motion";
+import { launchGeometry, type Rect, type ScreenBox } from "@/lib/launch";
+import { animateTo, dismissProgress, haptic, launchProgress, rubberBand, springs } from "@/lib/motion";
 import { goHome } from "@/lib/router";
 import { prefersReducedMotion, useOS } from "@/lib/store";
 
@@ -36,7 +33,7 @@ const FOCUSABLE =
 
 const mix = (a: number, b: number, p: number) => a + (b - a) * p;
 
-type Geometry = Rect & { W: number; H: number; screenR: number };
+type Geometry = Rect & ScreenBox;
 
 
 type Props = {
@@ -48,13 +45,13 @@ type Props = {
   quick: boolean;
   screenRef: RefObject<HTMLDivElement | null>;
   onClosed: () => void;
-  children: ReactNode;
 };
 
 /** Hold still this long mid-swipe to open the app switcher. */
 const HOLD_MS = 300;
 
-export function AppWindow({ app, title, closing, initial, quick, screenRef, onClosed, children }: Props) {
+export function AppWindow({ app, title, closing, initial, quick, screenRef, onClosed }: Props) {
+  const App = APPS[app];
   const geo = useRef<Geometry | null>(null);
   const windowRef = useRef<HTMLDivElement>(null);
   const controls = useRef<AnimationPlaybackControls[]>([]);
@@ -66,6 +63,14 @@ export function AppWindow({ app, title, closing, initial, quick, screenRef, onCl
   const reduced = useRef(false);
   const release = useRef({ vx: 0, vy: 0 });
   const item = ITEMS.find((i) => i.app === app);
+  // The app's content renders one frame after the window starts to grow (the icon's face covers
+  // it until then), so the tap's own frame only lays out the window. Deep links show it at once.
+  const [content, setContent] = useState(initial);
+  useEffect(() => {
+    if (content) return;
+    const id = requestAnimationFrame(() => startTransition(() => setContent(true)));
+    return () => cancelAnimationFrame(id);
+  }, [content]);
 
   const stop = () => {
     controls.current.forEach((c) => c.stop());
@@ -74,11 +79,7 @@ export function AppWindow({ app, title, closing, initial, quick, screenRef, onCl
 
   const measure = (consume: boolean) => {
     const screen = screenRef.current;
-    if (!screen) return;
-    const W = screen.clientWidth;
-    const H = screen.clientHeight;
-    const screenR = parseFloat(getComputedStyle(screen).borderTopLeftRadius) || 0;
-    geo.current = { ...originRect(screen, app, consume), W, H, screenR };
+    if (screen) geo.current = launchGeometry(screen, app, consume);
   };
 
   /*
@@ -103,12 +104,15 @@ export function AppWindow({ app, title, closing, initial, quick, screenRef, onCl
     };
   };
 
+  // A deep link is full size from its first render: it can mount before Motion's features have
+  // loaded, and a value set after that render wouldn't reach the style until it changed again.
+  if (initial && launchProgress.get() !== 1) launchProgress.set(1);
   const transform = useTransform([launchProgress, dismissProgress], ([p, d]: number[]) => frame(p, d).transform);
   const clipPath = useTransform([launchProgress, dismissProgress], ([p, d]: number[]) => frame(p, d).clipPath);
-  // Icon art crossfades into the app during the first 40% of the launch; content sharpens.
+  // Icon art crossfades into the app during the first 40% of the launch (no blur: a filter on a
+  // full-screen layer costs a phone GPU more than the whole launch).
   const contentOpacity = useTransform(launchProgress, [0.05, 0.4], [0, 1]);
   const overlayOpacity = useTransform(launchProgress, [0, 0.4], [1, 0]);
-  const contentFilter = useTransform(launchProgress, (p) => (p >= 0.4 ? "none" : `blur(${(1 - p / 0.4) * 6}px)`));
   // Swipe-up dismiss: the card follows the finger, shrinking toward 0.6 from its bottom edge.
   const dragTransform = useTransform([dragX, dragY, dismissProgress], ([x, y, d]: number[]) =>
     x === 0 && y === 0 && d === 0 ? "none" : `translate3d(${x}px, ${y}px, 0) scale(${1 - 0.4 * d})`,
@@ -124,10 +128,10 @@ export function AppWindow({ app, title, closing, initial, quick, screenRef, onCl
     } else if (reduced.current) {
       launchProgress.set(1);
       fade.set(0);
-      controls.current = [animate(fade, 1, { duration: 0.2, ease: "easeOut" })];
+      controls.current = [animateTo(fade, 1, { duration: 0.2, ease: "easeOut" })];
     } else {
       launchProgress.set(0);
-      controls.current = [animate(launchProgress, 1, springs.launch)];
+      controls.current = [animateTo(launchProgress, 1, springs.launch)];
     }
     return stop;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -146,7 +150,7 @@ export function AppWindow({ app, title, closing, initial, quick, screenRef, onCl
         return;
       }
       if (reduced.current) {
-        controls.current = [animate(fade, 0, { duration: 0.15, ease: "easeOut", onComplete: onClosed })];
+        controls.current = [animateTo(fade, 0, { duration: 0.15, ease: "easeOut", onComplete: onClosed })];
         return;
       }
       const H = geo.current?.H ?? 800;
@@ -165,26 +169,50 @@ export function AppWindow({ app, title, closing, initial, quick, screenRef, onCl
       };
       // Upward finger speed becomes shrink speed (progress per second)
       controls.current = [
-        animate(launchProgress, 0, {
+        animateTo(launchProgress, 0, {
           ...spring,
           velocity: (Math.min(0, vy) / H) * 1.4,
           onUpdate: (p) => p < 0.015 && finish(),
           onComplete: finish,
         }),
-        animate(dismissProgress, 0, spring),
-        animate(dragX, 0, { ...spring, velocity: vx }),
-        animate(dragY, 0, { ...spring, velocity: vy }),
+        animateTo(dismissProgress, 0, spring),
+        animateTo(dragX, 0, { ...spring, velocity: vx }),
+        animateTo(dragY, 0, { ...spring, velocity: vy }),
       ];
     } else if (launchProgress.get() < 1 && !reduced.current) {
       controls.current = [
-        animate(launchProgress, 1, springs.launch),
-        animate(dismissProgress, 0, springs.smooth),
-        animate(dragX, 0, springs.smooth),
-        animate(dragY, 0, springs.smooth),
+        animateTo(launchProgress, 1, springs.launch),
+        animateTo(dismissProgress, 0, springs.smooth),
+        animateTo(dragX, 0, springs.smooth),
+        animateTo(dragY, 0, springs.smooth),
       ];
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [closing]);
+
+  // While the window moves: its own layer (and only then), and no backdrop blur on the home
+  // screen under it or in its bar, which a phone would re-blur every frame (globals.css).
+  useEffect(() => {
+    const screen = screenRef.current;
+    const win = windowRef.current;
+    if (!screen || !win) return;
+    let moving: boolean | null = null;
+    const update = () => {
+      const p = launchProgress.get();
+      const next = p < 0.999 || dismissProgress.get() > 0.001;
+      if (next === moving) return;
+      moving = next;
+      screen.toggleAttribute("data-window-moving", next);
+      win.style.willChange = next ? "transform, clip-path" : "auto";
+    };
+    update();
+    const offs = [launchProgress.on("change", update), dismissProgress.on("change", update)];
+    return () => {
+      offs.forEach((off) => off());
+      screen.removeAttribute("data-window-moving");
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [app]);
 
   // Keep geometry right if the viewport changes while the app is open.
   useEffect(() => {
@@ -197,11 +225,22 @@ export function AppWindow({ app, title, closing, initial, quick, screenRef, onCl
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [app]);
 
-  // Initial focus goes into the window; the focus trap keeps it there.
+  // Initial focus goes into the window once its content is there and the launch has landed
+  // (focusing forces a layout, which mid-launch costs a frame); the focus trap keeps it there.
   useEffect(() => {
-    const first = windowRef.current?.querySelector<HTMLElement>(FOCUSABLE);
-    (first ?? windowRef.current)?.focus({ preventScroll: true });
-  }, [app]);
+    if (!content) return;
+    const focus = () => {
+      const first = windowRef.current?.querySelector<HTMLElement>(FOCUSABLE);
+      (first ?? windowRef.current)?.focus({ preventScroll: true });
+    };
+    if (launchProgress.get() >= 0.999 || reduced.current) return focus();
+    const off = launchProgress.on("change", (p) => {
+      if (p < 0.999) return;
+      off();
+      focus();
+    });
+    return off;
+  }, [app, content]);
 
   const trapFocus = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key !== "Tab" || !windowRef.current) return;
@@ -267,9 +306,9 @@ export function AppWindow({ app, title, closing, initial, quick, screenRef, onCl
           goHome();
         } else {
           controls.current = [
-            animate(dragX, 0, withVelocity("smooth", vx)),
-            animate(dragY, 0, withVelocity("smooth", vy)),
-            animate(dismissProgress, 0, springs.smooth),
+            animateTo(dragX, 0, { ...springs.smooth, velocity: vx }),
+            animateTo(dragY, 0, { ...springs.smooth, velocity: vy }),
+            animateTo(dismissProgress, 0, springs.smooth),
           ];
         }
       }
@@ -295,10 +334,10 @@ export function AppWindow({ app, title, closing, initial, quick, screenRef, onCl
         tabIndex={-1}
         onKeyDown={trapFocus}
         style={style}
-        className="pointer-events-auto absolute inset-0 overflow-hidden bg-app-background text-app-ink outline-none will-change-transform"
+        className="pointer-events-auto absolute inset-0 overflow-hidden bg-app-background text-app-ink outline-none"
       >
-        <m.div style={{ opacity: contentOpacity, filter: contentFilter }} className="absolute inset-0">
-          <WindowCtx.Provider value={motionCtx}>{children}</WindowCtx.Provider>
+        <m.div style={{ opacity: contentOpacity }} data-window-content className="absolute inset-0 [contain:layout_paint]">
+          <WindowCtx.Provider value={motionCtx}>{content && App && <App />}</WindowCtx.Provider>
         </m.div>
 
         {/* The icon's face, fading out as the window grows */}

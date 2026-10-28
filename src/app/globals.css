@@ -3,12 +3,17 @@
 @import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
+/* The drawn phone (tablet, desktop). Phones, and any screen under 520 px tall such as a phone in
+   landscape, are "phone mode": the site is the phone (lib/theme.ts PHONE_QUERY). */
+@custom-variant tab (@media (min-width: 600px) and (min-height: 520px));
+@custom-variant desk (@media (min-width: 900px) and (min-height: 520px));
+/* A phone on its side: wide and short */
+@custom-variant land (@media (max-height: 519.98px) and (orientation: landscape));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-geist-sans);
   --font-display: var(--font-archivo);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -67,8 +72,6 @@
   --color-finish-ink: var(--accent-ink);
   --color-available: var(--available);
 
-  --breakpoint-tab: 600px;
-  --breakpoint-desk: 900px;
   --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
@@ -214,10 +217,13 @@
   html {
     @apply font-sans;
     -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
-  /* The page never bounces or pull-to-refreshes; scroll physics live inside the phone */
+  /* The page never scrolls, bounces or pull-to-refreshes; scroll physics live inside the phone */
   html,
   body {
+    height: 100%;
+    overflow: hidden;
     overscroll-behavior: none;
   }
   body {
@@ -257,7 +263,7 @@
   aspect-ratio: 77.5 / 163.5;
 }
 
-@media (min-width: 600px) and (max-width: 899.98px) {
+@media (min-width: 600px) and (max-width: 899.98px) and (min-height: 520px) {
   .phone-wrap {
     --phone-h: min(78dvh, 880px);
   }
@@ -345,6 +351,11 @@
   overflow: hidden;
   background: #000;
   cursor: default;
+  /* The island's own spring: quick, with a little give as it grows (≈ stiffness 420, damping 30) */
+  transition:
+    width 420ms var(--ease-island),
+    height 420ms var(--ease-island);
+  --ease-island: linear(0, 0.13 6%, 0.45 14%, 0.83 25%, 1.03 35%, 1.08 43%, 1.06 52%, 1.01 66%, 0.995 80%, 1);
 }
 .status-pill-open {
   justify-content: flex-start;
@@ -353,12 +364,21 @@
   cursor: pointer;
 }
 
-/* On a real phone the site *is* the phone: no frame, no studio */
-@media (max-width: 599.98px) {
+/*
+ * On a real phone the site *is* the phone: no frame, no studio. Its height is the space the
+ * browser actually leaves: the visual viewport (--vvh, set by the init script as toolbars show and
+ * hide and the keyboard opens), else the dynamic, small or plain viewport height.
+ */
+@media (max-width: 599.98px), (max-height: 519.98px) {
   .phone-wrap {
     position: fixed;
     inset: 0;
+    top: var(--vvt, 0px);
+    bottom: auto;
+    height: 100vh;
+    height: 100svh;
     height: 100dvh;
+    height: var(--vvh, 100dvh);
     width: 100%;
     aspect-ratio: auto;
   }
@@ -377,7 +397,9 @@
   .status-pill {
     top: max(env(safe-area-inset-top), 10px);
     height: 40px;
-    transition: opacity 0.2s ease;
+    transition:
+      opacity 0.2s ease,
+      width 420ms var(--ease-island);
   }
   .status-pill:not(.status-pill-open) {
     opacity: 0;
@@ -396,7 +418,7 @@
   }
 }
 
-@media (min-width: 600px) {
+@media (min-width: 600px) and (min-height: 520px) {
   .phone-wrap {
     animation: phone-arrive 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
@@ -426,7 +448,7 @@ html[data-awake] .screen-off {
     visibility: hidden;
   }
 }
-@media (max-width: 599.98px), (prefers-reduced-motion: reduce) {
+@media (max-width: 599.98px), (max-height: 519.98px), (prefers-reduced-motion: reduce) {
   .screen-off {
     display: none;
   }
@@ -549,15 +571,37 @@ html[data-reduce-motion] .screen-off {
   --gh-4: #39d353;
 }
 .gh-grid {
+  --weeks: 17;
   display: grid;
-  grid-template-columns: repeat(17, 1fr);
+  grid-template-columns: repeat(var(--weeks), 1fr);
   grid-template-rows: repeat(7, 1fr);
   gap: 3px;
   flex: 1;
   min-height: 0;
-  aspect-ratio: 17 / 7;
+  aspect-ratio: var(--weeks) / 7;
   align-self: center;
   max-width: 100%;
+}
+/* A wide, short tile (landscape) shows more weeks instead of shrinking the squares */
+.gh-wide,
+.gh-wider {
+  display: none;
+}
+@container (min-aspect-ratio: 13 / 5) {
+  .gh-grid {
+    --weeks: 26;
+  }
+  .gh-wide {
+    display: block;
+  }
+}
+@container (min-aspect-ratio: 3 / 1) {
+  .gh-grid {
+    --weeks: 34;
+  }
+  .gh-wider {
+    display: block;
+  }
 }
 .gh-cell {
   position: relative;
@@ -571,7 +615,7 @@ html[data-reduce-motion] .screen-off {
 .gh-cell[data-level="4"] { background: var(--gh-4); }
 [data-shown] > .gh-grid > .gh-cell {
   animation: gh-in 360ms cubic-bezier(0.23, 1, 0.32, 1) both;
-  animation-delay: calc(var(--col) * 24ms);
+  animation-delay: calc((var(--weeks) - 1 - var(--age)) * 24ms);
 }
 @keyframes gh-in {
   from {
@@ -632,6 +676,11 @@ html[data-reduce-motion] .gh-today::after {
 .widget-press,
 .press-spring {
   transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* The home grid is laid out for the measured screen; until that first measure it stays hidden */
+[data-home-grid]:not([data-measured]) {
+  visibility: hidden;
 }
 
 /* Lock screen: shown on first visit; the init script hides it for repeat visits and deep links */
@@ -760,6 +809,24 @@ html:not([data-unlocked]) [data-home-layer] [data-fly] {
   }
 }
 
+/* While an app window grows or shrinks (AppWindow), nothing re-blurs what moves under it */
+[data-window-moving] :is(.glass, .glass-dark, .glass-chrome, .nav-material, .icon-folder .icon-tile) {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* An app whose code arrived after its launch: fades in over the skeleton (lib/lazy.tsx) */
+.lazy-arrive {
+  position: absolute;
+  inset: 0;
+  animation: lazy-arrive 180ms ease-out both;
+}
+@keyframes lazy-arrive {
+  from {
+    opacity: 0;
+  }
+}
+
 @keyframes wiggle {
   0% {
     transform: rotate(-1.6deg);
@@ -779,6 +846,108 @@ html:not([data-unlocked]) [data-home-layer] [data-fly] {
 }
 [data-wiggle] [data-dragging] .wiggle-item {
   animation: none;
+}
+
+/* Edit mode: the other icons glide to make room for the one being dragged */
+[data-wiggle] .home-slot,
+.edit-badges .edit-badge {
+  transition:
+    transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    translate 300ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 160ms ease-out;
+}
+
+/* The "–" on each removable icon (a 22 px dot with a 40 px touch target) */
+.edit-badge {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: rgb(88 88 92 / 0.94);
+  box-shadow:
+    0 1px 3px rgb(0 0 0 / 0.35),
+    inset 0 0 0 0.5px rgb(255 255 255 / 0.2);
+  animation:
+    badge-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both,
+    wiggle 260ms ease-in-out infinite;
+  animation-delay: 0ms, var(--wiggle-delay, 0ms);
+}
+.edit-badge::before {
+  content: "";
+  position: absolute;
+  inset: -9px;
+}
+.edit-badge > span {
+  width: 10px;
+  height: 2px;
+  border-radius: 1px;
+  background: #fff;
+}
+@keyframes badge-in {
+  from {
+    scale: 0.3;
+    opacity: 0;
+  }
+}
+.edit-pill {
+  animation: lazy-arrive 180ms ease-out both;
+}
+
+/* Lifted while dragged (one small element, so a drop shadow is affordable) */
+.edit-ghost {
+  scale: 1.1;
+  opacity: 0.94;
+  filter: drop-shadow(0 10px 18px rgb(0 0 0 / 0.32));
+}
+
+/* Held over an app long enough to make a folder: the app shrinks onto a frosted folder plate */
+.icon-press > span:first-child {
+  border-radius: 24%;
+  transition:
+    background-color 180ms ease-out,
+    box-shadow 180ms ease-out;
+}
+[data-merge] .icon-press > span:first-child {
+  background: rgb(255 255 255 / 0.38);
+  box-shadow: 0 0 0 8px rgb(255 255 255 / 0.38);
+}
+[data-merge] .icon-tile {
+  scale: 0.8;
+  transition: scale 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Edit mode's Done pill sits in the top-right corner, where Control Center's pull handle is */
+[data-screen]:has([data-home-layer][data-wiggle]) [data-panel-handle] {
+  pointer-events: none;
+}
+
+/* A folder open in edit mode: its apps are dragged, not scrolled */
+[data-folder][data-wiggle] {
+  touch-action: none;
+}
+
+/* Reduced motion: no wiggle, no gliding; edit mode breathes instead */
+@keyframes edit-breathe {
+  50% {
+    opacity: 0.72;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-wiggle] .wiggle-item,
+  [data-wiggle] .edit-badge {
+    animation: edit-breathe 1.8s ease-in-out infinite;
+  }
+  [data-wiggle] .home-slot,
+  .edit-badges .edit-badge {
+    transition: opacity 160ms ease-out;
+  }
+}
+html[data-reduce-motion] [data-wiggle] .wiggle-item,
+html[data-reduce-motion] [data-wiggle] .edit-badge {
+  animation: edit-breathe 1.8s ease-in-out infinite !important;
 }
 
 @keyframes dot-wave {

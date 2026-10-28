@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/app-shell";
 import { openApp } from "@/lib/router";
 import { useOS } from "@/lib/store";
+import { blurOf } from "@/lib/placeholders";
 
 const CATEGORIES = ["All", "Apps", "Games", "Web"] as const;
 const featured = projects.find((p) => p.featured) ?? projects[0];
@@ -36,9 +37,10 @@ function ProjectIcon({
     >
       <Image
         src={project.image}
+        {...blurOf(project.image)}
         alt=""
         fill
-        sizes={`${size * 2}px`}
+        sizes={`${size}px`}
         className="object-cover object-left-top"
       />
     </span>
@@ -72,6 +74,7 @@ function ProjectDetail({ id }: { id: string }) {
       <div className="relative mt-5 aspect-[16/10] overflow-hidden rounded-[16px] bg-app-group shadow-[0_0_0_0.5px_var(--app-divider)]">
         <Image
           src={p.image}
+          {...blurOf(p.image)}
           alt={`${p.name} screenshot`}
           fill
           sizes="(max-width: 600px) 100vw, 400px"
@@ -132,6 +135,7 @@ export default function ProjectsApp() {
             <span className="relative block aspect-[16/10]">
               <Image
                 src={featured.image}
+                {...blurOf(featured.image)}
                 alt=""
                 fill
                 sizes="(max-width: 600px) 100vw, 400px"

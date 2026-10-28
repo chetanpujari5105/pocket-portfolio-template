@@ -38,8 +38,11 @@ const depthOf = (state: unknown) => (isOurEntry(state) ? state.depth : 0);
 /** Set while history.go(-n) is in flight for goHome(). */
 let pendingHome = false;
 
-/** Open an app (or a detail view inside one). Pushes a history entry so Back closes it. */
-export function openApp(app: AppId, sub: string | null = null) {
+/**
+ * Open an app (or a detail view inside one). Pushes a history entry so Back closes it. `alone`:
+ * the detail view stands on its own (a folder), so Back goes straight home.
+ */
+export function openApp(app: AppId, sub: string | null = null, alone = false) {
   const { route, setRoute, setSpotlightOpen, setWiggle } = useOS.getState();
   setSpotlightOpen(false);
   setWiggle(false);
@@ -51,7 +54,7 @@ export function openApp(app: AppId, sub: string | null = null) {
     // Switching apps (side nav, Spotlight, cross-links): replace, so Back still lands on home.
     history.replaceState(history.state, "", toHash(app, null));
     if (sub) push(toHash(app, sub));
-  } else if (sub && route.app !== app) {
+  } else if (sub && route.app !== app && !alone) {
     // Deep entry from outside the app: Back should land on the app's list first.
     push(toHash(app, null));
     push(toHash(app, sub));
@@ -60,6 +63,17 @@ export function openApp(app: AppId, sub: string | null = null) {
   }
   setRoute({ app, sub, initial: false });
 }
+
+/** Folders open over the home screen as the `#socials` route (`#socials/<id>` for the visitor's own). */
+export function openFolder(id: string) {
+  // In edit mode a folder opens to be arranged or renamed, so editing carries on
+  const { wiggle, setWiggle } = useOS.getState();
+  openApp("socials", id === "socials" ? null : id, true);
+  if (wiggle) setWiggle(true);
+}
+
+/** The folder a `socials` route shows. */
+export const folderOf = (route: Pick<Route, "app" | "sub">) => (route.app === "socials" ? (route.sub ?? "socials") : null);
 
 /**
  * Back chevron / Esc / swipe: pop the detail view, else close the app. Uses the
@@ -128,7 +142,7 @@ export function useHashRouter() {
       route.app && route.app !== "socials"
         ? `${appsLayout.titles[route.app]} · ${profile.name}`
         : route.app === "socials"
-          ? `Socials · ${profile.name}`
+          ? `${useOS.getState().home.folders[route.sub ?? "socials"]?.name ?? "Folder"} · ${profile.name}`
           : HOME_TITLE;
-  }, [route.app]);
+  }, [route.app, route.sub]);
 }

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/app-shell";
 import { openApp } from "@/lib/router";
 import { useOS } from "@/lib/store";
+import { blurOf } from "@/lib/placeholders";
 
 const slugOf = (url: string) => url.replace(/\/+$/, "").split("/").pop() || url;
 
@@ -64,6 +65,7 @@ function Thumb({
     <span className={`${className} relative overflow-hidden bg-app-background`}>
       <Image
         src={post.image}
+        {...blurOf(post.image)}
         alt=""
         fill
         sizes={sizes}

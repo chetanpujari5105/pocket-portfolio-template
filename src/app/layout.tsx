@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Archivo, Geist, Geist_Mono } from "next/font/google";
+import { Archivo, Geist } from "next/font/google";
 
 import { ThemeSync } from "@/components/ui/theme-toggle";
 import { appsLayout } from "@content/apps";
@@ -8,21 +8,20 @@ import { SITE_URL } from "@/lib/site";
 import { buildInitScript } from "@/lib/theme";
 import "./globals.css";
 
+// The UI face: the only font preloaded. Variable, so every weight is one file.
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-// Expanded-width display face for the name
+// Expanded-width display face for the name and the lock-screen clock: swapped in when it lands
 const archivo = Archivo({
   variable: "--font-archivo",
   subsets: ["latin"],
   axes: ["wdth"],
+  display: "swap",
+  preload: false,
 });
 
 const deepLinkApps = Object.keys(appsLayout.titles).filter(
@@ -53,11 +52,13 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fafafa" },
-    { media: "(prefers-color-scheme: dark)", color: "#151619" },
-  ],
+  // The keyboard shrinks the layout (Android), so a focused field and Send stay in view
+  interactiveWidget: "resizes-content",
+  // Blends the browser bar into the wallpaper's top edge; <Phone> keeps it in step with the screen
+  themeColor: "#0b0b0d",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -65,7 +66,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} ${archivo.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${archivo.variable} h-full antialiased`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: buildInitScript(deepLinkApps) }} />

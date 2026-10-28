@@ -16,7 +16,7 @@ export const SOCIAL_MARK: Record<Social["id"], BrandMark> = {
   github,
 };
 
-/** Home-screen items with a `brand` slug (any social id) */
+/** Home-screen items with a `brand` slug (every social can sit on the home screen or in a folder) */
 export const HOME_MARKS: Record<string, BrandMark> = SOCIAL_MARK;
 
 /** The Socials folder: every profile in content/profile.ts, in order, except YouTube (it has its own icon) */

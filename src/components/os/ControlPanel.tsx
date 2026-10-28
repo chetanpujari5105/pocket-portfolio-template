@@ -182,7 +182,7 @@ export function ControlPanel() {
           aria-label="Control Center"
           inert={!open}
           style={{ y, scale, opacity, transformOrigin: "85% 0%" }}
-          className="relative mx-[5.5cqw] mt-[max(env(safe-area-inset-top),9cqh)] grid grid-cols-4 gap-[3cqw] tab:mt-[9cqh]"
+          className="relative mx-[5.5cqw] mt-[max(env(safe-area-inset-top),9cqh)] grid grid-cols-4 gap-[3cqw] tab:mt-[9cqh] land:mx-auto land:mt-[max(env(safe-area-inset-top),14px)] land:w-[min(calc(100%-48px),760px)] land:grid-flow-row-dense land:grid-cols-8 land:gap-[10px]"
         >
           <Tile className="col-span-2 row-span-2 flex flex-col p-0">
             <Toggle

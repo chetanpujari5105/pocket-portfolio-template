@@ -17,9 +17,13 @@ import { Glyph } from "./icons";
 type Props = {
   item: Pick<HomeItem, "id" | "label" | "icon" | "colors" | "app" | "href" | "brand">;
   showLabel?: boolean;
-  /** Custom tile content (e.g. the Socials folder preview) */
+  /** Custom tile content (e.g. a folder's preview) */
   tile?: ReactNode;
   className?: string;
+  /** Opens something other than the item's app or link (folders) */
+  onOpen?: (tile: HTMLElement | null) => void;
+  /** `data-icon-tile` override (folders: `f:<id>`), the anchor launches and folders zoom from */
+  tileKey?: string;
 };
 
 /**
@@ -53,24 +57,35 @@ function usePress() {
   };
 }
 
-export function AppIcon({ item, showLabel = true, tile, className }: Props) {
+/** The squircle itself. `tileKey: null` draws a copy that launches and folders don't anchor to. */
+export function IconFace({ item, tile, tileKey }: Pick<Props, "item" | "tile"> & { tileKey?: string | null }) {
   const mark = item.brand ? HOME_MARKS[item.brand] : undefined;
   const brand = mark?.tile;
   const style = brand
     ? ({ "--tile": brand.bg, color: brand.fg } as CSSProperties)
     : ({ "--c1": item.colors[0], "--c2": item.colors[1] } as CSSProperties);
+  return (
+    <span
+      className={cn("icon-tile wiggle-item", brand && "icon-brand")}
+      data-icon-tile={tileKey === null ? undefined : (tileKey ?? item.app ?? item.id)}
+      style={style}
+    >
+      {tile ??
+        (brand ? (
+          <BrandGlyph mark={mark!} style={{ width: `${brand.size * 100}%`, height: `${brand.size * 100}%` }} />
+        ) : (
+          <Glyph name={item.icon} />
+        ))}
+    </span>
+  );
+}
+
+export function AppIcon({ item, showLabel = true, tile, className, onOpen, tileKey }: Props) {
   const { scale, handlers } = usePress();
   const content = (
     <>
       <m.span style={{ scale }} className="block">
-        <span className={cn("icon-tile wiggle-item", brand && "icon-brand")} data-icon-tile={item.app ?? item.id} style={style}>
-          {tile ??
-            (brand ? (
-              <BrandGlyph mark={mark!} style={{ width: `${brand.size * 100}%`, height: `${brand.size * 100}%` }} />
-            ) : (
-              <Glyph name={item.icon} />
-            ))}
-        </span>
+        <IconFace item={item} tile={tile} tileKey={tileKey} />
       </m.span>
       {showLabel && <span className="icon-label max-w-[calc(var(--icon)+14px)] truncate">{item.label}</span>}
     </>
@@ -79,6 +94,22 @@ export function AppIcon({ item, showLabel = true, tile, className }: Props) {
     "icon-press flex flex-col items-center gap-[5px] rounded-[14px] outline-offset-4 select-none [-webkit-touch-callout:none] [-webkit-tap-highlight-color:transparent]",
     className,
   );
+
+  if (onOpen) {
+    return (
+      <button
+        type="button"
+        aria-label={`Open ${item.label} folder`}
+        data-nav
+        data-folder-open
+        className={classes}
+        {...handlers}
+        onClick={(e) => onOpen(e.currentTarget.querySelector<HTMLElement>("[data-icon-tile]"))}
+      >
+        {content}
+      </button>
+    );
+  }
 
   if (item.href) {
     return (

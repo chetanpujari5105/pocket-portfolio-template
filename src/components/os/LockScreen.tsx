@@ -58,7 +58,8 @@ export function flyInHome(screen: HTMLElement | null) {
       delay: i * 0.02,
       onUpdate: (p) => {
         el.style.opacity = String(Math.min(1, p));
-        el.style.scale = String(1.25 - 0.25 * p);
+        // Chrome (dock, Search pill) only fades in; icons and widgets also settle from larger
+        if (el.dataset.fly !== "fade") el.style.scale = String(1.25 - 0.25 * p);
       },
     }).then(() => {
       el.style.removeProperty("opacity");

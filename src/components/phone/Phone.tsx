@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  memo,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -15,20 +16,21 @@ import { Rotate3d } from "lucide-react";
 
 import { appsLayout } from "@content/apps";
 import type { AppId } from "@content/schema";
-import { APPS, preloadApp } from "@/components/apps/registry";
-import { BrightnessDim } from "@/components/os/BrightnessDim";
+import { BrightnessDim as BrightnessDimLayer } from "@/components/os/BrightnessDim";
 import { HomeScreen } from "@/components/os/HomeScreen";
-import { LockScreen } from "@/components/os/LockScreen";
+import { LockScreen as LockScreenLayer } from "@/components/os/LockScreen";
 import { StatusPill } from "@/components/os/StatusPill";
+import { lazyComponent, whenIdle } from "@/lib/lazy";
 import { settlePanel } from "@/lib/panel";
-import { goBack, goHome, useHashRouter } from "@/lib/router";
+import { folderOf, goBack, goHome, useHashRouter } from "@/lib/router";
 import { useOS } from "@/lib/store";
 import { SCREEN_INSET_RATIO } from "@/lib/device";
+import { setAppBackground } from "@/lib/theme-color";
 import { STAGE_3D_QUERY, STAGE_INTENT } from "@/lib/theme";
 
 import type { Phone3DProps, Rig } from "./Phone3D";
-import { StatusBar } from "./StatusBar";
-import { Wallpaper } from "./Wallpaper";
+import { StatusBar as StatusBarLayer } from "./StatusBar";
+import { Wallpaper as WallpaperLayer } from "./Wallpaper";
 
 /** `next`: switching apps — this one closes quickly, then `next` launches from its icon. */
 type WindowState = { app: AppId; closing: boolean; initial: boolean; next?: AppId };
@@ -38,15 +40,28 @@ const Phone3D = dynamic<Phone3DProps>(() => import("./Phone3D"), { ssr: false })
 // `m` components render and follow motion values straight away; animation/layout features arrive async
 const loadMotionFeatures = () => import("@/lib/motion-features").then((mod) => mod.default);
 
-// Layers that start closed load right after hydration instead of in the first bundle
-const AppWindow = dynamic(() => import("@/components/os/AppWindow").then((m) => m.AppWindow), { ssr: false });
-const AppSwitcher = dynamic(() => import("@/components/os/AppSwitcher").then((m) => m.AppSwitcher), { ssr: false });
-const Spotlight = dynamic(() => import("@/components/os/Spotlight").then((m) => m.Spotlight), { ssr: false });
-const SocialsFolder = dynamic(() => import("@/components/os/SocialsFolder").then((m) => m.SocialsFolder), { ssr: false });
-const ControlPanel = dynamic(() => import("@/components/os/ControlPanel").then((m) => m.ControlPanel), { ssr: false });
-const NotificationBanner = dynamic(() => import("@/components/os/NotificationBanner").then((m) => m.NotificationBanner), {
+// Layers that start closed load right after hydration instead of in the first bundle. The app
+// window (with the app registry) is fetched straight after hydration too, and never suspends
+// once it is here.
+const AppWindow = lazyComponent(() => import("@/components/os/AppWindow").then((m) => m.AppWindow));
+const loadRegistry = () => import("@/components/apps/registry");
+const preloadApps = () => void loadRegistry().then((m) => m.preloadApps());
+const preloadApp = (app: string) => void loadRegistry().then((m) => m.preloadApp(app as AppId));
+const AppSwitcher = memo(dynamic(() => import("@/components/os/AppSwitcher").then((m) => m.AppSwitcher), { ssr: false }));
+const Spotlight = memo(dynamic(() => import("@/components/os/Spotlight").then((m) => m.Spotlight), { ssr: false }));
+const FolderView = memo(dynamic(() => import("@/components/os/FolderView").then((m) => m.FolderView), { ssr: false }));
+const ControlPanel = memo(dynamic(() => import("@/components/os/ControlPanel").then((m) => m.ControlPanel), { ssr: false }));
+const NotificationBanner = memo(dynamic(() => import("@/components/os/NotificationBanner").then((m) => m.NotificationBanner), {
   ssr: false,
-});
+}));
+// Phone re-renders on every route change; the layers whose props don't change skip it, so a
+// launch only renders the home screen and the window
+const BrightnessDim = memo(BrightnessDimLayer);
+const LockScreen = memo(LockScreenLayer);
+const StatusBar = memo(StatusBarLayer);
+const Wallpaper = memo(WallpaperLayer);
+// Home-screen editing: menus, sheets, the App Library and drag-and-drop (one chunk with the edit overlay)
+const HomeSheets = lazyComponent(() => import("@/components/os/HomeEditor").then((m) => m.HomeSheets));
 const loadRig = () => import("./Phone3D").then((m) => m.newRig());
 
 /** How long the CSS phone waits for the 3D phone to make the entrance. */
@@ -88,6 +103,10 @@ const wake = () => document.documentElement.setAttribute("data-awake", "");
 export function Phone() {
   useHashRouter();
   const route = useOS((s) => s.route);
+  // Once editing has started the sheets layer stays mounted (it holds the screen-reader announcements)
+  const editing = useOS((s) => s.wiggle || !!s.homeSheet);
+  const [editorUsed, setEditorUsed] = useState(false);
+  if (editing && !editorUsed) setEditorUsed(true);
   const reduceMotion = useOS((s) => s.reduceMotion);
   const screenRef = useRef<HTMLDivElement>(null);
   const bezelRef = useRef<HTMLDivElement>(null);
@@ -103,11 +122,28 @@ export function Phone() {
 
   useEffect(() => {
     useOS.getState().hydratePrefs();
-    // Warm every app's chunk once things are quiet, so no launch ever shows a blank screen.
-    const idle = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 1500));
-    const cancel = window.cancelIdleCallback ?? window.clearTimeout;
-    const id = idle(() => (Object.keys(APPS) as AppId[]).forEach(preloadApp), { timeout: 4000 });
-    return () => cancel(id);
+    // Every app's code is on the device before the first tap: fetched once the page is quiet
+    // (within 1.5 s), or the moment a finger lands, whichever comes first.
+    void AppWindow.preload();
+    // The service worker (sw/sw.ts): production builds only, once the first load has settled
+    const cancelWorker =
+      process.env.NODE_ENV === "production" && "serviceWorker" in navigator
+        ? whenIdle(() => void import("@/lib/sw-register").then((mod) => mod.registerWorker()), 4000)
+        : () => {};
+    const cancel = whenIdle(preloadApps, 1500);
+    const now = () => {
+      cancel();
+      preloadApps();
+    };
+    const opts = { capture: true, once: true, passive: true } as const;
+    window.addEventListener("pointerdown", now, opts);
+    window.addEventListener("touchstart", now, opts);
+    return () => {
+      cancel();
+      cancelWorker();
+      window.removeEventListener("pointerdown", now, opts);
+      window.removeEventListener("touchstart", now, opts);
+    };
   }, []);
 
   // The 3D stage loads on the visitor's first sign of life (pointer, wheel, key or touch), once the
@@ -224,18 +260,42 @@ export function Phone() {
     });
   }
 
+  // The browser bar blends into the open app, else the wallpaper (lib/theme-color.ts).
+  const appUp = !!win && !win.closing;
+  useEffect(() => {
+    // Read in the next frame, after its own style pass: reading styles right after a launch or a
+    // theme switch would force that restyle into the same task
+    let raf = 0;
+    const color = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() =>
+        setAppBackground(appUp ? getComputedStyle(document.documentElement).getPropertyValue("--app-background").trim() : null),
+      );
+    };
+    color();
+    // Theme changes swap the app background
+    const observer = new MutationObserver(color);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => {
+      cancelAnimationFrame(raf);
+      observer.disconnect();
+    };
+  }, [appUp]);
+
   // Esc closes the top-most layer.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      const { spotlightOpen, setSpotlightOpen, wiggle, setWiggle, route, switcherOpen, setSwitcherOpen, panelOpen } =
+      const { spotlightOpen, setSpotlightOpen, wiggle, setWiggle, route, switcherOpen, setSwitcherOpen, panelOpen, homeSheet, setHomeSheet } =
         useOS.getState();
-      if (panelOpen) {
+      if (homeSheet) setHomeSheet(null);
+      else if (panelOpen) {
         settlePanel(false);
         document.querySelector<HTMLElement>("[data-panel-handle]")?.focus({ preventScroll: true });
       } else if (switcherOpen) setSwitcherOpen(false);
       else if (spotlightOpen) setSpotlightOpen(false);
-      else if (wiggle) setWiggle(false);
+      // A folder open in edit mode closes first; then edit mode ends
+      else if (wiggle && route.app !== "socials") setWiggle(false);
       else if (route.app) goBack();
       else return;
       e.preventDefault();
@@ -260,10 +320,8 @@ export function Phone() {
   // Warm app chunks when the visitor points at an icon.
   const warm = (e: { target: EventTarget }) => {
     const app = (e.target as HTMLElement).closest<HTMLElement>("[data-app-icon]")?.dataset.appIcon;
-    if (app && app in APPS) preloadApp(app as AppId);
+    if (app) preloadApp(app);
   };
-
-  const App = win ? APPS[win.app] : null;
 
   return (
     <LazyMotion features={loadMotionFeatures} strict>
@@ -298,7 +356,7 @@ export function Phone() {
         <div ref={screenRef} data-screen className="phone-screen">
           <Wallpaper />
           <HomeScreen open={!!win && !win.closing && !win.next} />
-          {win && App && (
+          {win && (
             <AppWindow
               key={win.app}
               app={win.app}
@@ -318,12 +376,11 @@ export function Phone() {
                   ?.querySelector<HTMLElement>(`[data-app-icon="${app}"]`)
                   ?.focus({ preventScroll: true });
               }}
-            >
-              <App />
-            </AppWindow>
+            />
           )}
           <LockScreen />
-          <SocialsFolder open={route.app === "socials"} screenRef={screenRef} />
+          <FolderView id={folderOf(route)} screenRef={screenRef} />
+          {editorUsed && <HomeSheets />}
           <Spotlight />
           <AppSwitcher screenRef={screenRef} />
           <StatusBar onApp={!!win && !win.closing} />

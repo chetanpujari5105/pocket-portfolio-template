@@ -10,6 +10,9 @@ const nextConfig: NextConfig = {
   },
   images: {
     formats: ["image/avif", "image/webp"],
+    // Thumbnails and avatars are fetched at exactly their display size at 1×, 2× and 3×
+    // (56, 58, 64, 72, 80 and 96 px boxes) instead of the next size up.
+    imageSizes: [32, 48, 56, 58, 64, 72, 80, 96, 112, 116, 128, 144, 160, 168, 174, 192, 216, 240, 256, 288, 384],
     qualities: [70, 80],
     // Substack post images for the Blog app
     remotePatterns: [

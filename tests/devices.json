@@ -1,0 +1,89 @@
+[
+  {
+    "name": "iPhone SE (1st gen)",
+    "width": 320,
+    "height": 568
+  },
+  {
+    "name": "iPhone SE 3",
+    "width": 375,
+    "height": 667
+  },
+  {
+    "name": "iPhone 13 mini",
+    "width": 375,
+    "height": 812
+  },
+  {
+    "name": "iPhone 15-16",
+    "width": 393,
+    "height": 852
+  },
+  {
+    "name": "iPhone Pro Max",
+    "width": 430,
+    "height": 932
+  },
+  {
+    "name": "iPhone Safari toolbar",
+    "width": 390,
+    "height": 664
+  },
+  {
+    "name": "Pixel 7",
+    "width": 412,
+    "height": 915
+  },
+  {
+    "name": "Pixel Chrome toolbar",
+    "width": 412,
+    "height": 780
+  },
+  {
+    "name": "Brave Android toolbars",
+    "width": 392,
+    "height": 690
+  },
+  {
+    "name": "Galaxy S8-S9",
+    "width": 360,
+    "height": 740
+  },
+  {
+    "name": "Galaxy A",
+    "width": 360,
+    "height": 800
+  },
+  {
+    "name": "Small Android",
+    "width": 360,
+    "height": 640
+  },
+  {
+    "name": "Fold folded",
+    "width": 280,
+    "height": 653
+  },
+  {
+    "name": "Fold unfolded",
+    "width": 673,
+    "height": 841
+  },
+  {
+    "name": "iPad mini",
+    "width": 744,
+    "height": 1133
+  },
+  {
+    "name": "Phone landscape",
+    "width": 844,
+    "height": 390,
+    "landscape": true
+  },
+  {
+    "name": "Phone landscape small",
+    "width": 740,
+    "height": 360,
+    "landscape": true
+  }
+]

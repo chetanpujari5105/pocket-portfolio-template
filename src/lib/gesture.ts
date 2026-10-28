@@ -22,7 +22,7 @@ export function hasBrowserEdgeSwipe() {
   const standalone =
     window.matchMedia("(display-mode: standalone)").matches ||
     (navigator as Navigator & { standalone?: boolean }).standalone === true;
-  return !standalone && window.matchMedia("(pointer: coarse) and (max-width: 599.98px)").matches;
+  return !standalone && window.matchMedia("(pointer: coarse) and (max-width: 599.98px), (pointer: coarse) and (max-height: 519.98px)").matches;
 }
 
 /**

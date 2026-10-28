@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import * as m from "motion/react-m";
 import { Check, Link2, Moon, Sun } from "lucide-react";
 
@@ -9,9 +9,6 @@ import { springs } from "@/lib/motion";
 import { useOS, type PillEvent } from "@/lib/store";
 import { currentTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
-
-/** The island's own spring: quick, with a little give as it grows. */
-const MORPH = { type: "spring", stiffness: 420, damping: 30, mass: 0.9 } as const;
 
 function PillIcon({ pill }: { pill: PillEvent }) {
   if (pill.kind === "progress")
@@ -40,7 +37,10 @@ function PillIcon({ pill }: { pill: PillEvent }) {
  * ("Message sent", "Link copied", "Theme: Dark", a refresh ring) and shrinks back. Tap collapses it.
  * Screen readers hear the same text from a polite live region.
  */
-export function StatusPill() {
+// Memoised (Phone re-renders on every route change). The pill grows with a CSS transition rather
+// than a Motion `layout` animation: Motion re-measures layout nodes whenever its tree updates,
+// which forced a full layout in the frame after every app launch.
+export const StatusPill = memo(function StatusPill() {
   const pill = useOS((s) => s.pill);
   const hidePill = useOS((s) => s.hidePill);
   // The last message stays rendered while the pill shrinks, so it can fade out
@@ -63,10 +63,8 @@ export function StatusPill() {
 
   return (
     <>
-      <m.button
+      <button
         type="button"
-        layout
-        transition={MORPH}
         tabIndex={pill ? 0 : -1}
         aria-hidden={!pill}
         aria-label={pill ? `${pill.text}. Dismiss` : undefined}
@@ -78,7 +76,6 @@ export function StatusPill() {
         {shown && (
           <m.span
             key={shown.id}
-            layout="position"
             initial={{ opacity: 0, scale: 0.9, filter: "blur(4px)" }}
             animate={
               pill
@@ -91,10 +88,10 @@ export function StatusPill() {
             <span className="truncate">{shown.text}</span>
           </m.span>
         )}
-      </m.button>
+      </button>
       <span role="status" aria-live="polite" className="sr-only">
         {pill?.text ?? ""}
       </span>
     </>
   );
-}
+});

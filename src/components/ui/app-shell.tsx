@@ -120,6 +120,32 @@ export function AppScreen({
     barOpacity.set(clamp01((y - at + 28) / 20));
   }, [scrollY, titleOpacity, barOpacity]);
 
+  // The on-screen keyboard shrinks the screen: bring the focused field back between the bar and
+  // the keyboard (by scrolling this screen only; scrollIntoView would also shift the phone itself).
+  useEffect(() => {
+    const vv = window.visualViewport;
+    const onResize = () =>
+      requestAnimationFrame(() => {
+        const scroller = scrollRef.current;
+        const field = document.activeElement as HTMLElement | null;
+        if (!scroller || !field || !scroller.contains(field) || !field.matches("input, textarea, select")) return;
+        const box = scroller.getBoundingClientRect();
+        const r = field.getBoundingClientRect();
+        const top = box.top + (barRef.current?.offsetHeight ?? 56) + 8;
+        const bottom = box.bottom - 12;
+        if (r.top >= top && Math.min(r.bottom, r.top + 48) <= bottom) return;
+        // Field top just under the bar, or as much of a tall field as fits
+        scroller.scrollTop += r.top - top;
+        update();
+      });
+    window.addEventListener("resize", onResize);
+    vv?.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      vv?.removeEventListener("resize", onResize);
+    };
+  }, [update]);
+
   const setLargeTitle = useCallback(
     (el: HTMLElement | null) => {
       largeTitle.current = el;
@@ -281,11 +307,14 @@ export function AppScreen({
           ref={scrollRef}
           onScroll={update}
           className={cn(
-            "no-scrollbar absolute inset-0 overflow-y-auto overscroll-none px-4 pt-[max(env(safe-area-inset-top),12px)] pb-16 tab:pt-[7cqh] tab:[mask-image:linear-gradient(to_bottom,transparent_4.6cqh,black_6.8cqh)]",
+            "no-scrollbar absolute inset-0 overflow-y-auto overscroll-none pt-[max(env(safe-area-inset-top),12px)] pr-[max(16px,env(safe-area-inset-right))] pb-[max(64px,calc(env(safe-area-inset-bottom)+44px))] pl-[max(16px,env(safe-area-inset-left))] [contain:layout_paint] tab:pt-[7cqh] tab:[mask-image:linear-gradient(to_bottom,transparent_4.6cqh,black_6.8cqh)]",
             className,
           )}
         >
-          <m.div style={{ y: pull }}>{children}</m.div>
+          {/* Landscape phones: a readable column, not a 800 px line length */}
+          <m.div style={{ y: pull }} className="mx-auto w-full max-w-[680px]">
+            {children}
+          </m.div>
         </div>
       </ScreenCtx.Provider>
     </m.div>

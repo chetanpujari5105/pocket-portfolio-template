@@ -21,10 +21,11 @@ import {
 import { useTheme } from "@/components/ui/theme-toggle";
 import { onRadioGroupKeyDown } from "@/lib/a11y";
 import { settlePanel } from "@/lib/panel";
-import { openApp } from "@/lib/router";
+import { goHome, openApp } from "@/lib/router";
 import { useOS, WALLPAPERS, type Wallpaper } from "@/lib/store";
 import { FINISHES, setThemeWithReveal, type Theme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+import { blurOf } from "@/lib/placeholders";
 
 const WALLPAPER_INFO: Record<Wallpaper, { label: string; preview: string }> = {
   ribbons: {
@@ -89,7 +90,7 @@ function Profile() {
       </div>
       <div className="flex flex-col items-center text-center">
         <span className="relative size-24 overflow-hidden rounded-full shadow-[0_0_0_0.5px_var(--app-divider)]">
-          <Image src={profile.avatar} alt={profile.name} fill sizes="96px" className="object-cover" />
+          <Image src={profile.avatar} {...blurOf(profile.avatar)} alt={profile.name} fill sizes="96px" className="object-cover" />
         </span>
         <h2 className="mt-3 text-[24px] font-bold tracking-tight">{profile.name}</h2>
         <p className="text-[14px] text-app-muted">{profile.role}</p>
@@ -145,7 +146,7 @@ export default function SettingsApp() {
             onClick={() => openApp("settings", "profile")}
             leading={
               <span className="relative block size-[58px] overflow-hidden rounded-full">
-                <Image src={profile.avatar} alt="" fill sizes="58px" className="object-cover" />
+                <Image src={profile.avatar} {...blurOf(profile.avatar)} alt="" fill sizes="58px" className="object-cover" />
               </span>
             }
             title={<span className="text-[19px] font-semibold">{profile.name}</span>}
@@ -251,6 +252,32 @@ export default function SettingsApp() {
               </button>
             ))}
           </div>
+        </ListGroup>
+
+        <ListGroup
+          header="Home Screen"
+          footer="Or long-press the home screen: drag icons to move them, drop one on another to make a folder, and tap – to remove one."
+        >
+          <ListRow
+            leading={<RowIcon glyph="sparkles" colors={["#bf5af2", "#7d2ae8"]} />}
+            title="Edit Home Screen"
+            chevron
+            onClick={() => {
+              goHome();
+              useOS.getState().setWiggle(true);
+            }}
+          />
+          <ListRow
+            leading={<RowIcon glyph="star" colors={["#64d2ff", "#0a84ff"]} />}
+            title="App Library"
+            subtitle="Every app and link, and the ones you removed"
+            chevron
+            onClick={() => useOS.getState().setHomeSheet({ kind: "library" })}
+          />
+          <ListRow
+            title={<span className="text-[#ff3b30]">Reset Home Screen</span>}
+            onClick={() => useOS.getState().setHomeSheet({ kind: "reset" })}
+          />
         </ListGroup>
 
         <ListGroup header="Accessibility" footer="Reduce motion swaps zooms and slides for gentle fades.">

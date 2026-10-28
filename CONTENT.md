@@ -19,7 +19,7 @@ settings, so you can change the site by editing these files only. Every field to
 | `reviews.ts` | Reviews. **Only `verified: true` reviews are shown.** Verify only real quotes you may publish. |
 | `projects.ts` | Projects app: `{ id, name, tagline, description, category, url, image, stack, color, featured }` |
 | `ask.ts` | Copy for the optional Ask app. Its answers come only from the files above. |
-| `apps.ts` | Home screen + dock layout: label, icon glyph name, gradient colours, and either `app` (opens in the phone) or `href` (new tab) |
+| `apps.ts` | The default home screen and dock: label, icon glyph name, gradient colours, and either `app` (opens in the phone) or `href` (new tab). Brand links that aren't on the home screen go in the Socials folder. Visitors can rearrange it all; their layout is saved in their browser, and Settings → Home Screen → Reset brings back yours. |
 
 ## Images
 
@@ -36,7 +36,8 @@ Convert JPG/PNG to WebP with:
 node scripts/optimize-images.mjs <folder-with-jpgs> public/content/<subfolder> 1200
 ```
 
-`node scripts/make-placeholders.mjs` regenerates the sample images.
+`node scripts/make-placeholders.mjs` regenerates the sample images. The blurred previews shown
+while an image loads (`src/lib/placeholders.ts`) are rebuilt from your images on every `npm run build`.
 
 ## Adding a course
 

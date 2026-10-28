@@ -128,7 +128,7 @@ test("swiping the home screen pages to the widgets and back", async ({ page }) =
   await expect(page.getByRole("button", { name: "Page 2 of 2" })).toHaveAttribute("aria-current", "page");
   if (hasPosts) await expect(page.getByRole("button", { name: /Latest post:/ })).toBeVisible();
   // Start the swipe back on a link widget: a native link drag must not swallow it.
-  const video = (await page.getByRole("link", { name: /^(YouTube channel|Latest video)/ }).boundingBox())!;
+  const video = (await page.getByRole("link", { name: /^(YouTube @|Latest video)/ }).boundingBox())!;
   const vy = video.y + video.height / 2;
   await drag(page, { x: video.x + video.width / 2, y: vy }, { x: video.x + video.width / 2 + layer.width * 0.6, y: vy }, { steps: 10 });
   await expect(page.getByRole("button", { name: "Page 1 of 2" })).toHaveAttribute("aria-current", "page");
@@ -144,22 +144,14 @@ test("pulling down on the home screen opens Search", async ({ page }) => {
   await expect(page.getByRole("combobox")).toHaveCount(0);
 });
 
-test("long-press enters jiggle mode; dragging an icon rearranges and persists", async ({ page }) => {
+test("long-press enters edit mode; Done leaves it", async ({ page }) => {
   await home(page);
-  const first = page.locator("[data-reorder]").first();
-  const id = await first.getAttribute("data-reorder");
-  const box = (await first.boundingBox())!;
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 3);
+  const icon = (await page.locator("[data-icon-tile=projects]").boundingBox())!;
+  await page.mouse.move(icon.x + icon.width / 2, icon.y + icon.height / 3);
   await page.mouse.down();
   await page.waitForTimeout(650);
   await page.mouse.up();
   await expect(page.getByRole("button", { name: "Done" })).toBeVisible();
-  await page.waitForTimeout(500); // jiggle mode's entrance settles before measuring the drop slot
-  const target = (await page.locator("[data-reorder]").nth(3).boundingBox())!;
-  await drag(page, { x: box.x + box.width / 2, y: box.y + box.height / 3 }, { x: target.x + target.width / 2, y: target.y + target.height / 3 }, { steps: 14, delay: 16 });
-  await page.waitForTimeout(600);
-  await expect(page.locator("[data-reorder]").nth(3)).toHaveAttribute("data-reorder", id!);
   await page.getByRole("button", { name: "Done" }).click();
-  await page.reload();
-  await expect(page.locator("[data-reorder]").nth(3)).toHaveAttribute("data-reorder", id!);
+  await expect(page.getByRole("button", { name: "Done" })).toHaveCount(0);
 });

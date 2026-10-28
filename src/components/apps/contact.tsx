@@ -9,8 +9,8 @@ import { profile } from "@content/profile";
 import { BrandTile } from "@/components/os/BrandIcon";
 import { SOCIAL_MARK } from "@/components/os/social-icons";
 import {
+  AppNav,
   AppScreen,
-  BackButton,
   ListGroup,
   ListRow,
 } from "@/components/ui/app-shell";
@@ -156,19 +156,23 @@ export default function ContactApp() {
   return (
     <>
       <AppScreen>
-        <form onSubmit={submit} noValidate aria-label="Contact form">
-          <header className="mb-4 flex h-[38px] items-center justify-between">
-            <BackButton label="Back to Home" />
-            <span className="text-[16px] font-semibold">New Message</span>
+        {/* In the frosted bar, so Send never scrolls away (and stays above the keyboard) */}
+        <AppNav
+          title="New Message"
+          action={
             <button
               type="submit"
+              form="contact-form"
               aria-label="Send message"
+              data-contact-send
               disabled={status === "sending"}
               className="grid size-[34px] place-items-center rounded-full bg-finish text-finish-ink transition-transform duration-150 ease-out active:scale-[0.9] disabled:opacity-50"
             >
               <ArrowUp className="size-5" strokeWidth={2.6} aria-hidden />
             </button>
-          </header>
+          }
+        />
+        <form id="contact-form" onSubmit={submit} noValidate aria-label="Contact form" className="mt-4">
 
           <h1 className="mb-4 text-[34px] leading-[1.08] font-bold tracking-[-0.02em]">
             Contact

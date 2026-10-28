@@ -1,9 +1,9 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import type { ComponentType } from "react";
 
 import type { AppId } from "@content/schema";
+import { lazyComponent, type Lazy } from "@/lib/lazy";
 
 /**
  * While an app's code loads (only when it's opened in the first moments after page load): the
@@ -23,35 +23,33 @@ function Loading() {
   );
 }
 
+const app = (load: () => Promise<{ default: ComponentType }>) => lazyComponent(() => load().then((mod) => mod.default), Loading, "lazy-arrive");
 
-/** Every app is its own chunk; only the home screen ships in the initial bundle. */
-export const APPS: Partial<Record<AppId, ComponentType>> = {
-  courses: dynamic(() => import("./courses"), { loading: Loading }),
-  journey: dynamic(() => import("./journey"), { loading: Loading }),
-  expertise: dynamic(() => import("./expertise"), { loading: Loading }),
-  platforms: dynamic(() => import("./platforms"), { loading: Loading }),
-  projects: dynamic(() => import("./projects"), { loading: Loading }),
-  blog: dynamic(() => import("./blog"), { loading: Loading }),
-  reviews: dynamic(() => import("./reviews"), { loading: Loading }),
-  services: dynamic(() => import("./services"), { loading: Loading }),
-  contact: dynamic(() => import("./contact"), { loading: Loading }),
-  settings: dynamic(() => import("./settings"), { loading: Loading }),
-  ask: dynamic(() => import("./ask"), { loading: Loading }),
+/**
+ * Every app is its own chunk; only the home screen ships in the initial bundle. The chunks are
+ * fetched once the page is idle (and again on the first touch), so a launch renders the app in
+ * its first frame instead of waiting on the network.
+ */
+export const APPS: Partial<Record<AppId, Lazy<object>>> = {
+  courses: app(() => import("./courses")),
+  journey: app(() => import("./journey")),
+  expertise: app(() => import("./expertise")),
+  platforms: app(() => import("./platforms")),
+  projects: app(() => import("./projects")),
+  blog: app(() => import("./blog")),
+  reviews: app(() => import("./reviews")),
+  services: app(() => import("./services")),
+  contact: app(() => import("./contact")),
+  settings: app(() => import("./settings")),
+  ask: app(() => import("./ask")),
 };
 
-/** Warm an app's chunk on hover/focus so the launch never waits on the network. */
-export function preloadApp(app: AppId) {
-  const loaders: Partial<Record<AppId, () => Promise<unknown>>> = {
-    courses: () => import("./courses"),
-    journey: () => import("./journey"),
-    expertise: () => import("./expertise"),
-    platforms: () => import("./platforms"),
-    projects: () => import("./projects"),
-    blog: () => import("./blog"),
-    reviews: () => import("./reviews"),
-    services: () => import("./services"),
-    contact: () => import("./contact"),
-    settings: () => import("./settings"),
-  };
-  void loaders[app]?.();
+/** Fetch an app's chunk ahead of its launch. */
+export function preloadApp(id: AppId) {
+  void APPS[id]?.preload();
+}
+
+/** Fetch every app's chunk. */
+export function preloadApps() {
+  (Object.keys(APPS) as AppId[]).forEach(preloadApp);
 }

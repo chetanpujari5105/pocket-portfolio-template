@@ -30,15 +30,15 @@ test.describe("calendar parser", () => {
     ]);
   });
 
-  test("keeps the last 17 whole weeks, starting on a Sunday", () => {
+  test("keeps the last 34 whole weeks, starting on a Sunday", () => {
     const days: ContributionDay[] = [];
     for (let d = new Date("2025-10-26T00:00:00Z"); d <= new Date("2026-10-27T00:00:00Z"); d.setUTCDate(d.getUTCDate() + 1))
       days.push({ date: d.toISOString().slice(0, 10), level: 0, count: 0 });
     const kept = lastWeeks(days);
     expect(new Date(`${kept[0].date}T00:00:00Z`).getUTCDay()).toBe(0);
     expect(kept.at(-1)!.date).toBe("2026-10-27");
-    // 16 full weeks + Sun–Tue of the current one
-    expect(kept.length).toBe(16 * 7 + 3);
+    // 33 full weeks + Sun–Tue of the current one
+    expect(kept.length).toBe(33 * 7 + 3);
   });
 });
 
@@ -57,8 +57,8 @@ test.describe("widget", () => {
       "aria-label",
       new RegExp(`^GitHub: (\\d[\\d,]* contributions in the last year|${profile.github}\\. View on GitHub)`),
     );
-    // 17 columns of days, today last; squares fade in once the page is in view
-    const cells = widget.locator(".gh-cell");
+    // At least 17 columns of days showing, today last; squares fade in once the page is in view
+    const cells = widget.locator(".gh-cell:visible");
     expect(await cells.count()).toBeGreaterThan(16 * 7);
     await expect(widget.locator(".gh-today")).toHaveCount(1);
     await expect(widget.locator("[data-shown]")).toHaveCount(1);
