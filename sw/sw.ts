@@ -2,12 +2,12 @@
 import { CacheFirst, ExpirationPlugin, NetworkFirst, Serwist, StaleWhileRevalidate, type PrecacheEntry } from "serwist";
 
 /*
- * The service worker (built by scripts/build-sw.mjs after `next build`, served as /sw.js; never in dev).
+ * The service worker (built by scripts/build-sw.mjs before `next build`, served as /sw.js; never in dev).
  * - Pages: network first (fresh HTML and a deploy's new chunks), the last copy offline or past 3 s.
  * - /_next/static: cache first. Hashed and immutable, so once the app's chunks have been fetched
  *   (the home screen prefetches every app at idle) a repeat visit runs entirely from the cache.
  * - Images, the Substack feed: stale-while-revalidate, refreshed in the background.
- * - Precached at install: the start page, fonts and icons.
+ * - Precached at install: the start page and icons.
  * A new deploy's worker takes over at once (skipWaiting + clientsClaim) and drops old precaches.
  */
 

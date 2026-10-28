@@ -61,9 +61,11 @@ almost instantly from cache.
 5. Tune the launch spring to about 350ms and the close to about 280ms, readable by 40%
    progress, always interruptible.
 6. Add a service worker with Serwist (the serwist package; @serwist/next needs webpack, so
-   bundle sw/sw.ts with esbuild after next build): cache the app shell, chunks, fonts and
-   icons; stale-while-revalidate for RSS, GitHub and YouTube data; it must not break the dev
-   server, and new deploys activate on the next load.
+   bundle sw/sw.ts into public/sw.js with esbuild in prebuild, before next build: Vercel
+   collects public/ during the build, so a file written afterwards never ships). Cache the app
+   shell, chunks, fonts and icons; stale-while-revalidate for RSS, GitHub and YouTube data; it
+   must not break the dev server, and new deploys activate on the next load. After deploying,
+   check that /sw.js answers 200 on the live site.
 7. Keep the budgets: initial JS at most 200 KB gzipped, Lighthouse mobile 92+ and desktop 100.
 Add tests/speed.spec.ts (CPU throttled via CDP) as its own Playwright project that runs last
 and alone, one test at a time (throttled browsers side by side double every number): open 5

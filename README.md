@@ -65,8 +65,9 @@ Extra scripts (run against a server on :3100):
 - `node scripts/fit-shots.mjs`: screenshots at all 17 sizes, to `screenshots/fit/`.
 - `node scripts/speed-moments.mjs` and `node scripts/longtasks.mjs`: launch, switch and swipe timings, and long tasks.
 
-`npm run build` also writes the service worker (`public/sw.js`, from `sw/sw.ts`). Before that,
-`prebuild` regenerates the blurred image previews in `src/lib/placeholders.ts`.
+Before every `npm run build`, `prebuild` regenerates the blurred image previews in
+`src/lib/placeholders.ts` and writes the service worker (`public/sw.js`, from `sw/sw.ts`). It has
+to exist before `next build`, because Vercel collects `public/` during the build.
 
 ## Deploy to Vercel
 

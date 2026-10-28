@@ -49,5 +49,5 @@ next-env.d.ts
 /linkedin.txt
 /screenshots/
 
-# Built by scripts/build-sw.mjs after next build
+# Built by scripts/build-sw.mjs before next build
 /public/sw.js
