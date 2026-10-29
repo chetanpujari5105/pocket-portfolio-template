@@ -8,8 +8,8 @@ import { cn } from "@/lib/utils";
 /**
  * `color`/`deep`: the UI accent (wallpaper, highlights). `frame`/`back`: the anodized metal of the
  * device itself, less saturated than the accent so it reads as metal, not plastic.
- * Burgundy → the 3D model as shipped (its own materials, untinted), Electric → cosmic orange-gold,
- * Graphite → space black, Chai → warm desert titanium (these three tint the model's metal and back glass).
+ * Burgundy (the default), Electric → orange-gold, Graphite → space black, Chai → warm titanium.
+ * The 3D phone paints its frame and back glass with `frame` and `back`.
  */
 export const FINISH_INFO: Record<Finish, { label: string; color: string; deep: string; frame: string; back: string }> = {
   burgundy: { label: "Burgundy", color: "#a3283f", deep: "#6b1426", frame: "#6e3440", back: "#4a1c25" },

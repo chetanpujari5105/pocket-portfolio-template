@@ -231,7 +231,7 @@
   --ios-scroll-edge: #ffffffd9;
   --ios-scroll-edge-hairline: #0000000d;
 
-  /* Phone finish — Burgundy by default (the 3D model as shipped); [data-finish] overrides */
+  /* Phone finish — Burgundy by default; [data-finish] overrides */
   --accent: #a3283f;
   --accent-deep: #6b1426;
   /* The device's anodized metal (FINISH_INFO.frame): deep burgundy */

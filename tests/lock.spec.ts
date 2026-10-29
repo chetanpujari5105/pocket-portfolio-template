@@ -82,14 +82,16 @@ test.describe("lock screen", () => {
     await page.goto("/");
     await settled(page);
     const cards = page.locator("[data-lock-stack] [data-note]");
-    await expect(cards).toHaveCount(3);
+    // content/lock-notes.ts can set latestReel to null, which drops the reel card
+    const expected = latestReel ? ["substack", "instagram", "project"] : ["substack", "project"];
+    await expect(cards).toHaveCount(expected.length);
     // Newest first: each card carries its app's tile (official marks for Substack and Instagram)
     const ids = await cards.evaluateAll((els) => els.map((e) => (e as HTMLElement).dataset.note));
-    expect(new Set(ids)).toEqual(new Set(["substack", "instagram", "project"]));
-    expect(ids[2]).toBe("project");
+    expect(new Set(ids)).toEqual(new Set(expected));
+    expect(ids.at(-1)).toBe("project");
     const substack = page.locator('[data-note="substack"] span.squircle').first();
     await expect(substack).toHaveCSS("background-color", "rgb(255, 103, 25)");
-    await expect(page.locator('[data-note="instagram"] span.squircle')).toHaveCount(1);
+    await expect(page.locator('[data-note="instagram"] span.squircle')).toHaveCount(latestReel ? 1 : 0);
     await expect(page.locator('[data-note="project"] .icon-tile')).toHaveCount(1);
 
     // Stacked: the cards behind sit under the front one, only their edges showing
@@ -101,13 +103,15 @@ test.describe("lock screen", () => {
     expect(d!.y).toBeGreaterThan(c!.y + c!.height - 1);
 
     // The reel opens in a new tab, and the lock screen stays
-    const popup = context.waitForEvent("page");
-    await page.locator('[data-note="instagram"]').click();
-    expect((await popup).url()).toContain(latestReel!.url);
-    await expect(page.locator("[data-lock]")).toBeVisible();
+    if (latestReel) {
+      const popup = context.waitForEvent("page");
+      await page.locator('[data-note="instagram"]').click();
+      expect((await popup).url()).toContain(latestReel.url);
+      await expect(page.locator("[data-lock]")).toBeVisible();
+      await page.bringToFront();
+    }
 
     // The project opens its detail in Projects
-    await page.bringToFront();
     await page.locator('[data-note="project"]').click();
     await expect(page.locator("[data-lock]")).toHaveCount(0);
     await expect(page).toHaveURL(new RegExp(`#projects/${lockProjectId}$`));
