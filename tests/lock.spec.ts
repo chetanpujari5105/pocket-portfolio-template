@@ -121,7 +121,8 @@ test.describe("lock screen", () => {
     await page.goto("/");
     await settled(page);
     const cards = page.locator("[data-lock-stack] [data-note]");
-    await expect(cards).toHaveCount(3);
+    const count = latestReel ? 3 : 2;
+    await expect(cards).toHaveCount(count);
     await cards.first().click();
     await page.waitForTimeout(600);
     const project = page.locator('[data-note="project"]');
@@ -135,7 +136,7 @@ test.describe("lock screen", () => {
     }
     await page.mouse.up();
     await expect(project).toHaveCount(0);
-    await expect(cards).toHaveCount(2);
+    await expect(cards).toHaveCount(count - 1);
     await expect(page.locator("[data-lock]")).toBeVisible();
 
     await page.locator('[data-note="substack"]').click();
