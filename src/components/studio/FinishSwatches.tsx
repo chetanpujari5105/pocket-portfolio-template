@@ -8,9 +8,11 @@ import { cn } from "@/lib/utils";
 /**
  * `color`/`deep`: the UI accent (wallpaper, highlights). `frame`/`back`: the anodized metal of the
  * device itself, less saturated than the accent so it reads as metal, not plastic.
- * Electric → cosmic orange-gold, Graphite → space black, Chai → warm desert titanium.
+ * Burgundy → the 3D model as shipped (its own materials, untinted), Electric → cosmic orange-gold,
+ * Graphite → space black, Chai → warm desert titanium (these three tint the model's metal and back glass).
  */
 export const FINISH_INFO: Record<Finish, { label: string; color: string; deep: string; frame: string; back: string }> = {
+  burgundy: { label: "Burgundy", color: "#a3283f", deep: "#6b1426", frame: "#6e3440", back: "#4a1c25" },
   electric: { label: "Electric", color: "#ffb800", deep: "#c98a00", frame: "#cc7538", back: "#d0824c" },
   graphite: { label: "Graphite", color: "#8a8f98", deep: "#4a4e55", frame: "#3b3c40", back: "#2c2d31" },
   chai: { label: "Chai", color: "#b9783f", deep: "#7a4a22", frame: "#b79d83", back: "#c1a88f" },

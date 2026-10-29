@@ -147,7 +147,8 @@ for (const size of SIZES) {
       await page.waitForTimeout(800);
       await page.keyboard.press("Control+ArrowUp");
       await page.waitForTimeout(900);
-      expect(await outside("[role=dialog][aria-label='App switcher'] button")).toEqual([]);
+      // The cards' live previews are inert and clipped to the card; only the switcher's own controls count
+      expect(await outside("[role=dialog][aria-label='App switcher'] button:not([inert] *)")).toEqual([]);
     });
 
     test("every app scrolls to an end that clears the home indicator", async ({ page }) => {

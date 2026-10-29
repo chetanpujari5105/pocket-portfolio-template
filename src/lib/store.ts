@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 import type { AppId } from "@content/schema";
 import { defaultLayout, homeGeometry, readHome, sanitize, writeHome, type HomeGeometry, type HomeLayout } from "@/lib/home";
-import { readStored, writeStored, type Finish } from "@/lib/theme";
+import { FINISHES, readStored, writeStored, type Finish } from "@/lib/theme";
 
 export type Wallpaper = "ribbons" | "aurora" | "dusk";
 export const WALLPAPERS: readonly Wallpaper[] = ["ribbons", "aurora", "dusk"];
@@ -39,6 +39,8 @@ type OSState = {
   panelOpen: boolean;
   /** 0.4–1: screen brightness from the control panel */
   brightness: number;
+  /** Lock-screen flashlight: a brightness boost over the screen until it's switched off or unlocked */
+  torch: boolean;
   homePage: number;
   /** Apps opened this session, most recent first (app switcher) */
   recents: AppId[];
@@ -54,7 +56,7 @@ type OSState = {
   /** A folder just made: it opens with its name field focused */
   renameFolder: string | null;
   pill: PillEvent | null;
-  /** Pre-filled subject for the Contact app ("Let's talk" from a service) */
+  /** Pre-filled subject for the Contact app (a service's "Start a conversation") */
   contactSubject: string;
   setRoute: (route: Route) => void;
   setFinish: (finish: Finish) => void;
@@ -67,6 +69,7 @@ type OSState = {
   setSwitcherOpen: (open: boolean) => void;
   setPanelOpen: (open: boolean) => void;
   setBrightness: (value: number) => void;
+  setTorch: (on: boolean) => void;
   setHomePage: (page: number) => void;
   forgetRecent: (app: AppId) => void;
   setHome: (layout: HomeLayout) => void;
@@ -107,7 +110,7 @@ let pillTimer = 0;
 
 export const useOS = create<OSState>()((set, get) => ({
   route: { app: null, sub: null, initial: true },
-  finish: "electric",
+  finish: "burgundy",
   wallpaper: "ribbons",
   reduceMotion: false,
   largeText: false,
@@ -118,6 +121,7 @@ export const useOS = create<OSState>()((set, get) => ({
   switcherOpen: false,
   panelOpen: false,
   brightness: 1,
+  torch: false,
   homePage: 0,
   recents: [],
   home: defaultLayout(),
@@ -157,11 +161,12 @@ export const useOS = create<OSState>()((set, get) => ({
   unlock: () => {
     writeSession(UNLOCK_KEY, "1");
     document.documentElement.setAttribute("data-unlocked", "");
-    set({ locked: false });
+    set({ locked: false, torch: false });
   },
   setSwitcherOpen: (switcherOpen) => set({ switcherOpen }),
   setPanelOpen: (panelOpen) => set({ panelOpen }),
   setBrightness: (brightness) => set({ brightness: Math.min(1, Math.max(0.4, brightness)) }),
+  setTorch: (torch) => set({ torch }),
   setHomePage: (homePage) => set({ homePage }),
   forgetRecent: (app) => set((s) => ({ recents: s.recents.filter((a) => a !== app) })),
   setHome: (layout) => {
@@ -185,7 +190,7 @@ export const useOS = create<OSState>()((set, get) => ({
   setContactSubject: (contactSubject) => set({ contactSubject }),
   hydratePrefs: () => {
     set({
-      finish: readStored("pp-finish", ["electric", "graphite", "chai"] as const) ?? "electric",
+      finish: readStored("pp-finish", FINISHES) ?? "burgundy",
       wallpaper: readStored(PREF_KEYS.wallpaper, WALLPAPERS) ?? "ribbons",
       reduceMotion: readStored(PREF_KEYS.reduceMotion, ["reduce", "auto"] as const) === "reduce",
       largeText: readStored(PREF_KEYS.largeText, ["large", "default"] as const) === "large",

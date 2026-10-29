@@ -12,6 +12,7 @@ import * as THREE from "three";
 import { FINISH_INFO } from "@/components/studio/FinishSwatches";
 import { DEVICE, SCREEN_INSET_RATIO } from "@/lib/device";
 import { startedIn } from "@/lib/gesture";
+import { phoneTilt } from "@/lib/motion";
 import { useOS } from "@/lib/store";
 import { profile } from "@content/profile";
 
@@ -237,6 +238,8 @@ const BUTTONS: { side: -1 | 1; at: number; h: number; flush?: boolean }[] = [
   { side: 1, at: 0.27, h: 0.09 }, // side button
   { side: 1, at: 0.585, h: 0.05, flush: true }, // camera control
 ];
+/** The camera control: the flush button (it has an invisible, wider hit area beside the frame) */
+const CONTROL = BUTTONS.findIndex((b) => b.flush);
 
 /** Back camera plateau (an original layout): full-width, three lenses in a row, flash + sensor at the end. */
 const PLATEAU = { margin: 0.13, h: 1.62, r: 0.46 };
@@ -270,6 +273,7 @@ function Device({
   const tilt = useRef({ x: 0, y: 0 });
   const colors = useMemo(() => ({ frame: new THREE.Color(), back: new THREE.Color() }), []);
   const press = useRef(BUTTONS.map(() => 0));
+  const hit = useRef<THREE.Mesh>(null);
   const invalidate = useThree((s) => s.invalidate);
 
   const geo = useMemo(() => {
@@ -394,6 +398,8 @@ function Device({
       moving = easing.damp(tilt.current, "x", p.y * MAX_TILT, TILT_SMOOTH, dt) || moving;
       moving = easing.damp(tilt.current, "y", p.x * MAX_TILT, TILT_SMOOTH, dt) || moving;
     }
+    phoneTilt.x.set(tilt.current.y / MAX_TILT);
+    phoneTilt.y.set(tilt.current.x / MAX_TILT);
 
     g.rotation.y = rig.rotY + tilt.current.y + away * -18 * DEG;
     g.rotation.x = rig.rotX + tilt.current.x + away * 8 * DEG;
@@ -418,6 +424,8 @@ function Device({
       if (b) b.position.x = b.userData.x - Math.sign(b.userData.x) * press.current[i] * 0.02;
       if (press.current[i] !== want) moving = true;
     });
+    const control = press.current[CONTROL] > 0.5 ? "pressed" : "released";
+    if (stage.current && stage.current.dataset.cameraControl !== control) stage.current.dataset.cameraControl = control;
 
     // The screen is only interactive while it faces the camera.
     const facing = !showingBack(g.rotation.y);
@@ -430,6 +438,12 @@ function Device({
     }
 
     if (moving) state.invalidate();
+    // At rest, where the camera control is on the page (for tests and the scripts in scripts/)
+    else if (s && hit.current && facing) {
+      const p = hit.current.getWorldPosition(new THREE.Vector3()).project(state.camera);
+      const r = state.gl.domElement.getBoundingClientRect();
+      s.dataset.cameraControlAt = `${Math.round(r.left + ((p.x + 1) / 2) * r.width)},${Math.round(r.top + ((1 - p.y) / 2) * r.height)}`;
+    }
   });
 
   const pressButton = (i: number) => (e: ThreeEvent<PointerEvent>) => {
@@ -517,6 +531,15 @@ function Device({
           />
         );
       })}
+      {/* The camera control's hit area, just outside the frame so it can be pressed from the front */}
+      <mesh
+        ref={hit}
+        position={[PHONE_W / 2 + 0.03, PHONE_H * (0.5 - BUTTONS[CONTROL].at), 0]}
+        onPointerDown={pressButton(CONTROL)}
+      >
+        <boxGeometry args={[0.08, PHONE_H * BUTTONS[CONTROL].h, 0.3]} />
+        <meshBasicMaterial visible={false} />
+      </mesh>
 
       {/* The live OS. A rounded occluder punches the screen hole in the canvas. */}
       <Html

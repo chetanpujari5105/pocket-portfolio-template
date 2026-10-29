@@ -17,7 +17,7 @@ const walk = (dir) =>
 
 const entries = [];
 // Icons and the web app manifest's images
-for (const file of walk("public/icons")) entries.push({ url: `/${relative("public", file)}`, revision: hash(readFileSync(file)) });
+for (const file of walk("public/icons").filter((f) => !f.endsWith(".txt"))) entries.push({ url: `/${relative("public", file)}`, revision: hash(readFileSync(file)) });
 // The start page: revisioned per deploy (the commit on Vercel), so each one refreshes the offline copy
 const revision = process.env.VERCEL_GIT_COMMIT_SHA ?? randomUUID();
 entries.push({ url: "/", revision });

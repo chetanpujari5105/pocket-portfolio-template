@@ -1,3 +1,4 @@
+import { profile } from "../content/profile";
 import { expect, test, type Page } from "./fixtures";
 import { fallbackPosts, substackFeed } from "../content/blog";
 
@@ -75,6 +76,58 @@ test("Control Center toggles larger text, dims brightness, and swipes up to clos
   }
   await page.mouse.up();
   await expect(page.locator("[data-control-panel]")).toBeHidden();
+});
+
+test("every Control Center control does something: finish and wallpaper menus, flashlight, text size, Contact", async ({ page }) => {
+  await home(page);
+  await page.locator("[data-panel-handle]").click();
+  await expect(panel(page)).toBeVisible();
+  await page.waitForTimeout(500);
+
+  // Finish: a glass menu with the four finishes; Esc puts the menu away, not Control Center
+  await panel(page).getByRole("button", { name: /^Finish/ }).click();
+  const finish = panel(page).getByRole("dialog", { name: "Finish" });
+  await expect(finish.getByRole("radio")).toHaveCount(4);
+  await page.keyboard.press("Escape");
+  await expect(finish).toHaveCount(0);
+  await expect(panel(page)).toBeVisible();
+  await panel(page).getByRole("button", { name: /^Finish/ }).click();
+  await finish.getByRole("radio", { name: "Electric" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-finish", "electric");
+  await expect(panel(page).getByRole("button", { name: "Finish: Electric" })).toBeVisible();
+
+  // Wallpaper
+  await panel(page).getByRole("button", { name: /^Wallpaper/ }).click();
+  await panel(page).getByRole("dialog", { name: "Wallpaper" }).getByRole("radio", { name: "Aurora" }).click();
+  await expect(panel(page).getByRole("button", { name: "Wallpaper: Aurora" })).toBeVisible();
+
+  // Flashlight lifts the screen; Reduce motion sets the page attribute
+  await panel(page).getByRole("button", { name: "Flashlight" }).click();
+  await expect(page.locator("[data-torch]")).toHaveCount(1);
+  await panel(page).getByRole("button", { name: "Flashlight" }).click();
+  await expect(page.locator("[data-torch]")).toHaveCount(0);
+  await panel(page).getByRole("button", { name: "Reduce motion" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-reduce-motion", "");
+  await panel(page).getByRole("button", { name: "Reduce motion" }).click();
+
+  // The text size slider snaps between its two stops
+  const text = panel(page).getByRole("slider", { name: "Text size" });
+  await text.focus();
+  await page.keyboard.press("ArrowUp");
+  await expect(text).toHaveAttribute("aria-valuetext", "Larger");
+  await expect(page.locator("html")).toHaveAttribute("data-text", "large");
+  await page.keyboard.press("ArrowDown");
+  await expect(page.locator("html")).not.toHaveAttribute("data-text");
+
+  // Now Playing opens the channel's video on YouTube
+  // (the latest video, or the channel itself when there's no video yet)
+  const nowPlaying = await panel(page).getByRole("link", { name: /^Now playing/ }).getAttribute("href");
+  expect(nowPlaying === profile.youtube || /youtube\.com|youtu\.be/.test(nowPlaying ?? "")).toBe(true);
+
+  // Contact closes Control Center and opens Contact
+  await panel(page).getByRole("button", { name: /^Contact/ }).click();
+  await expect(page.locator("[data-control-panel]")).toBeHidden();
+  await expect(page.getByRole("dialog", { name: "Contact" })).toBeVisible();
 });
 
 test("Settings opens Control Center (the no-gesture path)", async ({ page }) => {

@@ -184,10 +184,10 @@ export type HomeGeometry = {
 
 const MIN_ICON = 48;
 const MAX_ICON = 68;
-/** Label line + the gap above it */
-const LABEL = 19;
-/** Search pill row: 10 px clear above the 28 px pill, 8 px below (landscape: 8 / 8) */
-const SEARCH_ROW = 46;
+/** Label line + the gap above it for an icon (`.icon-label`: a 10–11 px line at 1.35, 0.11 of the icon above it) */
+const labelFor = (icon: number) => icon * 0.11 + Math.min(11, Math.max(10, icon * 0.17)) * 1.35;
+/** Search pill row: 10 px clear above the 26 px pill; below it 2% of the screen to the dock (landscape: 8) */
+const SEARCH_ROW = 36;
 const SEARCH_ROW_LANDSCAPE = 44;
 
 export type Insets = { top: number; right: number; bottom: number; left: number };
@@ -205,22 +205,26 @@ export function homeGeometry(W: number, H: number, insets: Insets, framed: boole
   const cellW = (W - padX * 2 - gapX * (cols - 1)) / cols;
   // Phones: a band for edit mode's Done / + pills and the status pill's messages
   const top = framed ? H * 0.074 : insets.top + (landscape ? 30 : 34);
-  const bottom = framed ? H * 0.014 : Math.max(insets.bottom, landscape ? 6 : 8);
+  // The dock floats 3.3% of the screen above the bottom edge (28 px on an 844 px phone), over the home indicator
+  const bottom = landscape ? Math.max(insets.bottom, 6) : Math.max(framed ? 0 : insets.bottom, Math.round(H * 0.033));
   // Rows a phone page is designed for; the icon shrinks toward 48 px before a row is given up
   const target = landscape ? 3 : 6;
-  const fromWidth = cellW * 0.84;
-  const search = landscape ? SEARCH_ROW_LANDSCAPE : SEARCH_ROW;
-  const padRatio = landscape ? 0.15 : 0.2;
-  const fixed = H - top - bottom - search - LABEL * target;
+  // A phone sets a 60 pt icon on a 390 pt screen (≈ 64–66 pt at 430): 0.81 of the cell
+  const fromWidth = cellW * 0.81;
+  const search = landscape ? SEARCH_ROW_LANDSCAPE : SEARCH_ROW + Math.round(H * 0.02);
+  // Dock: 87 px tall around a 60 px icon on an 844 px phone
+  const padRatio = landscape ? 0.15 : 0.224;
+  const fixed = H - top - bottom - search - labelFor(60) * target;
   const fromHeight = fixed / (target + 0.22 * (target - 1) + 1 + padRatio * 2);
   const icon = Math.floor(Math.min(MAX_ICON, Math.max(MIN_ICON, Math.min(fromWidth, fromHeight))) * 10) / 10;
-  const cellH = icon + LABEL;
+  const cellH = icon + labelFor(icon);
   const dockPad = Math.max(landscape ? 7 : 10, icon * padRatio);
   const area = H - top - bottom - search - (icon + dockPad * 2);
   const minGap = landscape ? 8 : Math.max(8, icon * 0.22);
   // As many rows as fit, up to the page the screen is designed for; spare height opens the rows up
   const rows = Math.max(2, Math.min(target, Math.floor((area + minGap) / (cellH + minGap) + 0.02)));
-  const gapY = Math.min(icon * 0.5, Math.max(minGap, (area - rows * cellH) / (rows - 1)));
+  // Rows sit a phone's pitch apart (1.7 icons for a 60 px icon); spare height stays below them
+  const gapY = Math.min(icon * 0.37, Math.max(minGap, (area - rows * cellH) / (rows - 1)));
   return { cols, rows, icon, cellW, cellH, gapX, gapY, padX, top, bottom, search, dockPad, landscape };
 }
 

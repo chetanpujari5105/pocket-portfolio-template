@@ -108,6 +108,11 @@ export const dismissProgress = motionValue(0);
 export const searchProgress = motionValue(0);
 /** 0 = lock screen down, 1 = unlocked. */
 export const unlockProgress = motionValue(1);
+/**
+ * How the phone is tilted, −1…1 each way (x: right edge away, y: top edge away): the 3D phone's
+ * pointer parallax, or the pointer / device orientation for the CSS phone. The lock clock reads it.
+ */
+export const phoneTilt = { x: motionValue(0), y: motionValue(0) };
 /** 0 = control panel closed, 1 = open. */
 export const panelProgress = motionValue(0);
 /** Home pager offset in px (negative = later pages). */

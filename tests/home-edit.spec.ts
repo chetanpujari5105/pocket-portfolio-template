@@ -200,7 +200,7 @@ test("remove sends an app to the App Library; + adds it back; Settings can't be 
   await expect(library).toHaveCount(0);
 
   // The keyboard path to removing Settings is refused, with a reason
-  await page.locator('[data-home-key="settings"] [data-nav]').focus();
+  await page.locator('[data-dock-key="settings"] [data-nav]').focus();
   await page.keyboard.press("Delete");
   await expect(page.getByRole("alertdialog")).toHaveCount(0);
   await expect(announcer(page)).toContainText("Settings stays on the Home Screen");
@@ -236,18 +236,18 @@ test("the dock holds four: a full dock refuses an app; one out makes room", asyn
   await drag(page, await center(page, tile("x")), await beside(page, "blog"));
   // Dropped beside, not on, a dock icon: the dock is full, so nothing changes
   let layout = await saved(page);
-  expect(layout?.dock ?? ["courses", "blog", "services", "contact"]).toEqual(["courses", "blog", "services", "contact"]);
+  expect(layout?.dock ?? ["courses", "blog", "contact", "settings"]).toEqual(["courses", "blog", "contact", "settings"]);
 
   const contact = await center(page, tile("contact"));
   await drag(page, contact, await beside(page, "x"));
   layout = (await saved(page))!;
-  expect(layout.dock).toEqual(["courses", "blog", "services"]);
+  expect(layout.dock).toEqual(["courses", "blog", "settings"]);
   expect(layout.grid).toContain("contact");
 
   const dock = (await page.locator("[data-dock]").boundingBox())!;
   await drag(page, await center(page, tile("journey")), { x: dock.x + dock.width - 20, y: dock.y + dock.height / 2 });
   layout = (await saved(page))!;
-  expect(layout.dock).toEqual(["courses", "blog", "services", "journey"]);
+  expect(layout.dock).toEqual(["courses", "blog", "settings", "journey"]);
 });
 
 test("holding a dragged icon at the screen edge turns the page", async ({ page }) => {
@@ -307,7 +307,7 @@ test("Settings → Home Screen opens the App Library and resets the layout after
   await expect(confirm.getByRole("button", { name: "Cancel" })).toBeFocused();
   await confirm.getByRole("button", { name: "Reset Home Screen" }).click();
   const layout = (await saved(page))!;
-  expect(layout.dock).toEqual(["courses", "blog", "services", "contact"]);
+  expect(layout.dock).toEqual(["courses", "blog", "contact", "settings"]);
   expect(layout.folders.socials?.name).toBe("Socials");
 });
 

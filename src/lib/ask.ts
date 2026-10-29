@@ -25,7 +25,7 @@ export const ALLOWED_LINKS = new Set<string>([
   profile.substack,
   ...profile.socials.map((s) => s.url),
   ...courses.map((c) => c.url),
-  ...projects.map((p) => p.url),
+  ...projects.flatMap((p) => (p.url ? [p.url] : [])),
   ...platforms.primary.flatMap((p) => (p.url ? [p.url] : [])),
 ]);
 

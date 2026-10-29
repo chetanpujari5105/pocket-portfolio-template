@@ -27,7 +27,8 @@ import { prefersReducedMotion, useOS } from "@/lib/store";
 
 import { AppIcon } from "./AppIcon";
 import { BrandGlyph } from "./BrandIcon";
-import { Glyph } from "./icons";
+import { GitHubWidget } from "./GitHubWidget";
+import { FaceGlyph, faceProps, Glyph } from "./icons";
 import { ImpactWidget } from "./ImpactWidget";
 import { HOME_MARKS } from "./social-icons";
 import { useHomeLayout } from "./use-home-layout";
@@ -70,10 +71,10 @@ function FolderTile({ items }: { items: string[] }) {
         ) : (
           <span
             key={id}
-            className="squircle grid aspect-square place-items-center text-white"
-            style={{ background: `linear-gradient(170deg, ${item.colors[0]}, ${item.colors[1]})` }}
+            {...faceProps(item)}
+            className="tile-face squircle grid aspect-square place-items-center"
           >
-            <Glyph name={item.icon} className="size-[60%]" />
+            <FaceGlyph item={item} className="size-[60%]" />
           </span>
         );
       })}
@@ -88,6 +89,7 @@ export function HomeEntry({ entry, showLabel = true }: { entry: string; showLabe
     const id = widgetId(entry);
     if (id === "impact") return <ImpactWidget />;
     if (id === "work") return <WorkWidget />;
+    if (id === "github") return <GitHubWidget />;
     return <LazyWidget id={id} />;
   }
   if (folder) {
@@ -119,8 +121,40 @@ export function slotBox(p: Pick<Placed, "col" | "row" | "w" | "h">, g: HomeGeome
 
 /** The pages themselves. Memoised: opening an app re-renders the layer, never the icons. */
 const Pages = memo(function Pages({ placed, pages, page, geo }: { placed: Placed[]; pages: number; page: number; geo: HomeGeometry }) {
+  const stripRef = useRef<HTMLDivElement>(null);
+  // Pages wholly off to the side skip style, layout and paint (a theme switch or a launch then
+  // restyles one page, not the GitHub heatmap's 238 squares as well). Decided from the pager's
+  // own position, never by `content-visibility: auto`: inside the 3D phone's transform Chrome's
+  // on-screen test misjudges the current page after a tilt or a flip and stops painting it.
+  useLayoutEffect(() => {
+    const strip = stripRef.current;
+    // The grid, not the strip's parent (the Apps nav is `display: contents` and measures 0)
+    const viewport = strip?.closest<HTMLElement>("[data-home-grid]");
+    if (!strip || !viewport) return;
+    let width = viewport.clientWidth;
+    const sync = () => {
+      if (!width) return;
+      const left = -homePagerX.get();
+      for (const el of strip.children as HTMLCollectionOf<HTMLElement>) {
+        const start = Number(el.dataset.homePage) * width;
+        const off = start + width <= left + 0.5 || start >= left + width - 0.5;
+        if (off !== el.hasAttribute("data-offscreen")) el.toggleAttribute("data-offscreen", off);
+      }
+    };
+    sync();
+    const ro = new ResizeObserver(() => {
+      width = viewport.clientWidth;
+      sync();
+    });
+    ro.observe(viewport);
+    const stop = homePagerX.on("change", sync);
+    return () => {
+      ro.disconnect();
+      stop();
+    };
+  }, [pages]);
   return (
-    <m.div style={{ x: homePagerX }} className="flex h-full">
+    <m.div ref={stripRef} style={{ x: homePagerX }} className="flex h-full">
       {Array.from({ length: pages }, (_, index) => (
         <div
           key={index}
@@ -128,9 +162,7 @@ const Pages = memo(function Pages({ placed, pages, page, geo }: { placed: Placed
           aria-label={`Home page ${index + 1} of ${pages}`}
           data-home-page={index}
           inert={page !== index}
-          // Pages off to the side skip style and layout until they slide in (a theme switch or a
-          // launch then restyles one page, not the GitHub heatmap's 238 squares as well)
-          className="relative h-full w-full shrink-0 [content-visibility:auto]"
+          className="relative h-full w-full shrink-0 data-offscreen:[content-visibility:hidden]"
         >
           {placed.map((p, i) => {
             if (p.page !== index) return null;
@@ -233,7 +265,9 @@ export function HomeScreen({ open }: { open: boolean }) {
     (s) => {
       const { first, last, tap, axis, movement, velocity, direction, event, cancel, memo } = s;
       if (tap) return;
-      if (first && (wiggle || startedIn(event, "[data-dock], [data-no-swipe]"))) {
+      // A vertical drag that starts on a widget with its own vertical gesture (the Expertise
+      // stack) is that widget's; sideways it still pages
+      if (first && (wiggle || startedIn(event, "[data-dock], [data-no-swipe]") || (axis === "y" && startedIn(event, "[data-no-pull]")))) {
         cancel();
         return;
       }
@@ -254,7 +288,9 @@ export function HomeScreen({ open }: { open: boolean }) {
         if (last) settleSearch(velocity[1] * direction[1] * 1000);
       }
     },
-    { target: layerRef, axis: "lock", filterTaps: true, threshold: 10, pointer: { capture: true }, enabled: !open && !locked },
+    // Arrow keys are home-keys' (use-gesture's own keyboard drag would pull Search a step and
+    // swallow the next Enter as a drag's click)
+    { target: layerRef, axis: "lock", filterTaps: true, threshold: 10, pointer: { capture: true, keys: false }, enabled: !open && !locked },
   );
 
   // Trackpad: horizontal scroll pages; scrolling "up" pulls Search down.
@@ -395,6 +431,15 @@ export function HomeScreen({ open }: { open: boolean }) {
 
       <Dock entries={dock} geo={geo} />
 
+      {/* The drawn phone's home indicator (a real phone draws its own): decoration only, under the dock */}
+      <div
+        aria-hidden
+        data-home-bar
+        className="pointer-events-none absolute inset-x-0 bottom-[1%] hidden justify-center tab:flex"
+      >
+        <span className="h-[5px] w-[35%] max-w-[140px] rounded-full bg-white/85 shadow-[0_0_3px_rgb(0_0_0/0.18)]" />
+      </div>
+
       <m.div aria-hidden style={{ opacity: dim }} className="pointer-events-none absolute inset-0 bg-black" />
     </m.div>
   );
@@ -403,16 +448,16 @@ export function HomeScreen({ open }: { open: boolean }) {
 function PageDots({ page, pages, height, onPage }: { page: number; pages: number; height: number; onPage: (page: number) => void }) {
   const setSpotlightOpen = useOS((s) => s.setSpotlightOpen);
   return (
-    <div data-fly="fade" className="flex items-start justify-center" style={{ height, paddingTop: height - 36 }} data-no-swipe>
-      <div data-search-pill className="glass-chrome flex h-[28px] items-center gap-0.5 rounded-full pr-2 pl-0.5 text-white">
+    <div data-fly="fade" className="flex items-start justify-center" style={{ height, paddingTop: 10 }} data-no-swipe>
+      <div data-search-pill className="glass-chrome flex h-[26px] items-center gap-0.5 rounded-full pr-2 pl-0.5 text-white">
         <button
           type="button"
           data-nav
           aria-label="Search"
           onClick={() => setSpotlightOpen(true)}
-          className="press-spring flex h-[26px] items-center gap-1 rounded-full px-2.5 text-[12.5px] font-medium tracking-[-0.01em]"
+          className="press-spring flex h-[24px] items-center gap-1 rounded-full px-2.5 text-[11.5px] font-medium"
         >
-          <Glyph name="search" className="size-[12px] opacity-90" />
+          <Glyph name="search" className="size-[11px] opacity-90" />
           Search
         </button>
         {Array.from({ length: pages }, (_, i) => (
@@ -458,10 +503,16 @@ const Dock = memo(function Dock({ entries, geo }: { entries: string[]; geo: Home
       onPointerLeave={() => mouseX.set(Infinity)}
       className={
         full
-          ? "glass-chrome mx-[4.1cqw] grid grid-cols-4 justify-items-center gap-x-[4.2cqw] rounded-[calc(var(--icon)*0.24+3.4cqw)] px-[4.9cqw]"
-          : "glass-chrome mx-auto flex min-w-[calc(var(--icon)+32px)] justify-center rounded-[calc(var(--icon)*0.24+3.4cqw)] px-[16px]"
+          ? "dock-glass mx-[3.8cqw] flex justify-between px-[3.1cqw]"
+          : "dock-glass mx-auto flex min-w-[calc(var(--icon)+32px)] justify-center px-[16px]"
       }
-      style={{ paddingTop: pad, paddingBottom: pad, minHeight: geo.icon + pad * 2, gap: full ? undefined : geo.gapX * 1.4 }}
+      style={{
+        paddingTop: pad,
+        paddingBottom: pad,
+        minHeight: geo.icon + pad * 2,
+        gap: full ? undefined : geo.gapX * 1.4,
+        ["--dock-pad" as string]: `${pad}px`,
+      }}
     >
       {entries.map((entry) => (
         <DockItem key={entry} entry={entry} mouseX={mouseX} boxes={boxes}>

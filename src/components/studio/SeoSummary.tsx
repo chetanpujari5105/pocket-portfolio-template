@@ -77,7 +77,7 @@ export function SeoSummary({ posts }: { posts: FeedPost[] }) {
         <ul>
           {projects.map((p) => (
             <li key={p.id}>
-              <a href={p.url}>{p.name}</a> — {p.description}
+              {p.url ? <a href={p.url}>{p.name}</a> : p.name} — {p.description}
             </li>
           ))}
         </ul>

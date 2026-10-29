@@ -5,8 +5,9 @@ import { useEffect, useState } from "react";
 import { useOS } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
+/** 12-hour, no AM/PM, like iOS */
 function formatTime(d: Date) {
-  return `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`;
+  return `${d.getHours() % 12 || 12}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
 /** Live local clock — updates on the minute. */
@@ -23,7 +24,7 @@ function Clock() {
     return () => window.clearTimeout(timer);
   }, []);
   return (
-    <time suppressHydrationWarning className="tabular-nums">
+    <time suppressHydrationWarning className="text-[clamp(12px,4.4cqw,15px)] font-semibold tracking-[-0.4px] tabular-nums">
       {time}
     </time>
   );
@@ -33,18 +34,20 @@ function Clock() {
 export function StatusBar({ onApp }: { onApp: boolean }) {
   // Edit mode: like iOS, the status bar steps aside for the Done and + pills
   const editing = useOS((s) => s.wiggle);
+  // The lock screen's own clock is the time; like iOS, the bar's left side stays empty there
+  const locked = useOS((s) => s.locked);
   return (
     <div
       className={cn(
         editing && !onApp && "opacity-0",
         // Centred on the cutout's midline; time and indicators each centred in their "ear" beside it
-        "pointer-events-none absolute inset-x-0 top-0 z-70 hidden h-[calc(var(--phone-h)*0.0563)] grid-cols-[1fr_30%_1fr] items-center px-[3cqw] font-[system-ui,-apple-system,sans-serif] text-[clamp(13px,4.1cqw,16px)] font-semibold tracking-[-0.01em] transition-colors duration-200 tab:grid",
+        "pointer-events-none absolute inset-x-0 top-0 z-70 hidden h-[calc(var(--phone-h)*0.0563)] grid-cols-[1fr_30%_1fr] items-center px-[3cqw] font-[system-ui,Segoe_UI,Roboto,sans-serif] text-[clamp(13px,4.1cqw,16px)] font-semibold tracking-[-0.01em] transition-colors duration-200 tab:grid",
         onApp ? "text-app-ink" : "text-white",
       )}
       aria-hidden
     >
       <span className="flex justify-center pl-[2cqw]">
-        <Clock />
+        {!locked && <Clock />}
       </span>
       <span />
       <span className="flex items-center justify-center gap-[5px] pr-[1cqw]">

@@ -3,10 +3,16 @@ import { cacheLife } from "next/cache";
 import { profile } from "@content/profile";
 import { SITE_URL } from "@/lib/site";
 
+import snapshot from "../../public/content/github-contributions.json";
+
 export type ContributionLevel = 0 | 1 | 2 | 3 | 4;
 export type ContributionDay = { date: string; level: ContributionLevel; count: number | null };
-/** `days` covers the last HEATMAP_WEEKS weeks, oldest first, starting on a Sunday. */
-export type Contributions = { user: string; total: number | null; days: ContributionDay[] };
+/**
+ * `days` covers the last HEATMAP_WEEKS weeks, oldest first, starting on a Sunday. `source`:
+ * `github` (live) or `snapshot` (public/content/github-contributions.json, written by
+ * scripts/github-snapshot.mts, used when GitHub can't be reached).
+ */
+export type Contributions = { user: string; total: number | null; days: ContributionDay[]; source: "github" | "snapshot" };
 
 export const HEATMAP_WEEKS = 34;
 
@@ -80,23 +86,33 @@ async function fromHtml(user: string) {
   return parsed;
 }
 
-/**
- * The contribution calendar, refreshed every 6 hours: GraphQL when `GITHUB_TOKEN` is set, else the
- * public calendar fragment. Both failing → null, and the widget shows an empty grid.
- */
-export async function getContributions(): Promise<Contributions | null> {
-  "use cache";
-  cacheLife({ stale: 3600, revalidate: 21600, expire: 604800 });
-  const user = profile.github;
+/** The calendar straight from GitHub (uncached): GraphQL when `GITHUB_TOKEN` is set, else the public fragment. */
+export async function fetchLiveContributions(user = profile.github): Promise<Contributions> {
   const token = process.env.GITHUB_TOKEN;
   const sources = token ? [() => fromGraphQL(user, token), () => fromHtml(user)] : [() => fromHtml(user)];
+  let error: unknown;
   for (const source of sources) {
     try {
       const { total, days } = await source();
-      return { user, total, days: lastWeeks(days) };
-    } catch {
-      // try the next source
+      return { user, total, days: lastWeeks(days), source: "github" };
+    } catch (e) {
+      error = e; // try the next source
     }
   }
-  return null;
+  throw error;
+}
+
+/**
+ * The contribution calendar for /api/contributions, cached for 6 hours and refreshed in the
+ * background (stale-while-revalidate), so no visitor waits on GitHub. If GitHub can't be reached
+ * it is the committed snapshot, never nothing.
+ */
+export async function getContributions(): Promise<Contributions> {
+  "use cache";
+  cacheLife({ stale: 3600, revalidate: 21600, expire: 604800 });
+  try {
+    return await fetchLiveContributions();
+  } catch {
+    return { ...(snapshot as Omit<Contributions, "source">), source: "snapshot" };
+  }
 }

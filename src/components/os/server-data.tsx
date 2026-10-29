@@ -3,13 +3,12 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
 
 import type { BlogPost } from "@content/schema";
-import type { Contributions } from "@/lib/github";
 
 export type FeedPost = BlogPost & { excerpt: string };
 
 export type LatestVideo = { id: string; title: string; url: string; published: string; thumb: string };
 
-type ServerData = { posts: FeedPost[]; fromFeed: boolean; video: LatestVideo | null; contributions: Contributions | null };
+type ServerData = { posts: FeedPost[]; fromFeed: boolean; video: LatestVideo | null };
 
 /** Fetches the feed again; resolves to how many posts are new. */
 type Refresh = () => Promise<number>;
@@ -18,7 +17,6 @@ const Ctx = createContext<ServerData & { refresh: Refresh }>({
   posts: [],
   fromFeed: false,
   video: null,
-  contributions: null,
   refresh: async () => 0,
 });
 

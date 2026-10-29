@@ -107,6 +107,8 @@ export const PlatformsSchema = z.object({
     z.object({
       name: z.string(),
       url: url.nullable(),
+      /** Where the link goes, shown under the name: part of `url`, never anything else */
+      handle: z.string().optional(),
       logo: z.string(),
       note: z.string().optional(),
     }),
@@ -116,7 +118,6 @@ export const PlatformsSchema = z.object({
 
 export const ExpertiseSchema = z.object({
   id: z.string(),
-  emoji: z.string(),
   title: z.string(),
   tools: z.array(z.string()),
   relatedCourses: z.array(z.string()),
@@ -125,14 +126,18 @@ export const ExpertiseSchema = z.object({
 
 export const ServiceSchema = z.object({
   id: z.string(),
-  emoji: z.string(),
   title: z.string(),
+  /** One line under the title in the list */
+  summary: z.string(),
   description: z.string(),
-  subject: z.string(),
+  /** "What you get" on the detail screen */
+  points: z.array(z.string()).min(3).max(5),
+  goodFor: z.string(),
+  tools: z.object({ label: z.string(), items: z.array(z.string()).min(1) }).optional(),
   chip: z.string().optional(),
 });
 
-export const PhilosophySchema = z.object({ emoji: z.string(), quote: z.string() });
+export const PhilosophySchema = z.object({ quote: z.string() });
 
 export const BlogPostSchema = z.object({
   date: z.string(),
@@ -143,12 +148,35 @@ export const BlogPostSchema = z.object({
 });
 
 export const ReviewSchema = z.object({
-  name: z.string(),
-  role: z.string(),
-  city: z.string(),
-  quote: z.string(),
+  id: z.string(),
+  course: z.string(),
+  /** Short label for the course filter chips */
+  courseShort: z.string(),
+  courseUrl: url,
   rating: z.number().int().min(1).max(5),
+  /** Verbatim, as the reviewer wrote it */
+  text: z.string(),
+  /** The name exactly as the platform displays it */
+  author: z.string(),
+  /** The platform's own date label ("2 years ago", read on READ_ON) or a plain date */
+  date: z.string(),
+  /** Where the review was copied from, e.g. "Udemy", "Google", "Fiverr" */
+  source: z.string(),
+  /** true only for reviews copied from a real platform */
   verified: z.boolean(),
+  /** A placeholder: the app shows a "Sample" tag on it. Remove the flag when you paste a real review. */
+  sample: z.boolean().optional(),
+  featured: z.boolean().optional(),
+});
+
+/** The platform your reviews come from (content/reviews.ts `reviewSource`) */
+export const ReviewSourceSchema = z.object({
+  name: z.string(),
+  url,
+  /** Text of the link row, e.g. "Udemy Instructor Profile" */
+  linkLabel: z.string(),
+  /** The platform's own totals, from your profile page; omit to hide the line */
+  totals: z.object({ reviews: z.number().int(), people: z.number().int(), peopleLabel: z.string() }).optional(),
 });
 
 export const ProjectSchema = z.object({
@@ -157,7 +185,10 @@ export const ProjectSchema = z.object({
   tagline: z.string(),
   description: z.string(),
   category: z.enum(["Apps", "Games", "Web"]),
-  url,
+  /** null: nothing public to open yet (a private repo, no store listing) */
+  url: url.nullable(),
+  /** Where it stands, shown under the tagline (e.g. "Closed alpha on Google Play") */
+  status: z.string().optional(),
   image: localImage,
   stack: z.array(z.string()),
   color: z.string(),
@@ -168,7 +199,7 @@ export const HomeItemSchema = z.object({
   id: z.string(),
   label: z.string(),
   icon: z.string(),
-  /** Two gradient stops for the icon tile */
+  /** The tile's vertical gradient, top to bottom (the glyph is always white) */
   colors: z.tuple([z.string(), z.string()]),
   app: AppIdSchema.optional(),
   href: url.optional(),
@@ -205,6 +236,7 @@ export type Service = z.infer<typeof ServiceSchema>;
 export type Philosophy = z.infer<typeof PhilosophySchema>;
 export type BlogPost = z.infer<typeof BlogPostSchema>;
 export type Review = z.infer<typeof ReviewSchema>;
+export type ReviewSource = z.infer<typeof ReviewSourceSchema>;
 export type Project = z.infer<typeof ProjectSchema>;
 export type HomeItem = z.infer<typeof HomeItemSchema>;
 export type AppsLayout = z.infer<typeof AppsLayoutSchema>;

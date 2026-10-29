@@ -24,7 +24,7 @@ function knowledge() {
     `## Services (to hire ${profile.firstName}, use the Contact app)\n${services.map((s) => `- ${s.title}: ${s.description}`).join("\n")}`,
     `## Expertise\n${expertise.map((e) => `- ${e.title}: ${e.tools.join(", ")}`).join("\n")}`,
     `## Platforms\n${platforms.primary.map((p) => `- ${p.name}${p.url ? ` ${p.url}` : ""}${p.note ? ` (${p.note})` : ""}`).join("\n")}\nAlso distributed via: ${platforms.distribution.join(", ")}`,
-    `## Projects ${profile.firstName} built\n${projects.map((p) => `- ${p.name}: ${p.tagline} (${p.url})`).join("\n")}`,
+    `## Projects ${profile.firstName} built\n${projects.map((p) => `- ${p.name}: ${p.tagline}${p.url ? ` (${p.url})` : ""}`).join("\n")}`,
     `## Links\nUdemy: ${profile.udemyProfile}\nYouTube: ${profile.youtube}\nSubstack: ${profile.substack}\n${profile.socials.map((s) => `${s.label}: ${s.url}`).join("\n")}`,
     `## Recent writing\n${fallbackPosts.map((p) => `- ${p.title}: ${p.subtitle}`).join("\n")}`,
   ].join("\n\n");

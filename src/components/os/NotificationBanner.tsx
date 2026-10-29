@@ -11,7 +11,8 @@ import { fadeTransition, rubberBand, springs, withVelocity } from "@/lib/motion"
 import { openApp } from "@/lib/router";
 import { prefersReducedMotion, readSession, useOS, writeSession } from "@/lib/store";
 
-import { Glyph } from "./icons";
+import { BrandTile } from "./BrandIcon";
+import { substack } from "./brand-marks";
 import { useServerData } from "./server-data";
 
 /** Session flag: the banner shows at most once per browser session. */
@@ -129,22 +130,16 @@ export function NotificationBanner({ screenRef }: { screenRef: RefObject<HTMLDiv
       }}
       onFocus={() => (held.current = true)}
       onBlur={() => (held.current = false)}
-      className="glass-dark absolute inset-x-[2.5cqw] top-[max(env(safe-area-inset-top),8px)] z-[77] flex touch-none items-center gap-3 rounded-[22px] p-3 text-left text-white shadow-[0_10px_30px_rgb(0_0_0/0.25),inset_0_1px_0_rgb(255_255_255/0.2)] tab:top-[5.4cqh]"
+      className="lock-notification absolute inset-x-[2.5cqw] top-[max(env(safe-area-inset-top),8px)] z-[77] w-auto! touch-none tab:top-[5.4cqh]"
     >
-      <span
-        aria-hidden
-        className="grid size-[38px] shrink-0 place-items-center rounded-[10px]"
-        style={{ background: "linear-gradient(165deg, #ffb36b, #ff6a1f)" }}
-      >
-        <Glyph name="newspaper" className="size-[20px]" />
-      </span>
+      <BrandTile mark={substack} className="size-[2.375rem]" />
       <span className="min-w-0 flex-1">
-        <span className="flex items-baseline justify-between gap-2 text-[12px] font-semibold text-white/75">
-          <span>Substack</span>
-          <span className="font-medium">now</span>
+        <span className="flex items-baseline justify-between gap-2">
+          <span className="text-[0.75rem] font-semibold tracking-[0.06em] uppercase opacity-60">Substack</span>
+          <span className="text-[0.8125rem] opacity-60">now</span>
         </span>
-        <span className="block truncate text-[14px] font-semibold">New post: {post.title}</span>
-        <span className="block truncate text-[12.5px] text-white/75">{post.subtitle}</span>
+        <span className="block truncate text-[0.9375rem] leading-tight font-semibold">New post: {post.title}</span>
+        <span className="block truncate text-[0.9375rem] leading-tight opacity-80">{post.subtitle}</span>
       </span>
     </m.button>
   );

@@ -13,7 +13,7 @@ export const linkedin: BrandMark = {
   "tile": {
     "bg": "#0A66C2",
     "fg": "#fff",
-    "size": 0.5
+    "size": 0.62
   }
 };
 
@@ -26,7 +26,7 @@ export const x: BrandMark = {
   "tile": {
     "bg": "#000",
     "fg": "#fff",
-    "size": 0.46
+    "size": 0.56
   }
 };
 

@@ -226,7 +226,11 @@ export function Phone() {
     const screen = screenRef.current;
     const target = live3D ? host : bezelRef.current;
     if (!screen || !target || screen.parentElement === target) return;
+    // Moving a subtree blurs whatever was focused inside it (Spotlight's field, an open app):
+    // put focus back, or a keyboard visitor mid-search suddenly types into nothing.
+    const focused = screen.contains(document.activeElement) ? (document.activeElement as HTMLElement) : null;
     target.appendChild(screen);
+    focused?.focus({ preventScroll: true });
     const root = document.documentElement;
     root.toggleAttribute("data-3d", live3D);
     if (live3D) {
@@ -418,11 +422,12 @@ function CssPhone({
         </div>
       </div>
       {/* Action, volume up/down; side button and the flush camera control */}
-      <span aria-hidden className="phone-btn top-[15.2%] -left-[2px] h-[3.6%]" />
-      <span aria-hidden className="phone-btn top-[21.6%] -left-[2px] h-[5.8%]" />
-      <span aria-hidden className="phone-btn top-[28.6%] -left-[2px] h-[5.8%]" />
-      <span aria-hidden className="phone-btn top-[22.5%] -right-[2px] h-[9%]" />
-      <span aria-hidden className="phone-btn phone-btn-flush top-[56%] -right-px h-[5%]" />
+      {/* Placed where the 3D model has them */}
+      <span aria-hidden className="phone-btn top-[18.9%] -left-[2px] h-[4.2%]" />
+      <span aria-hidden className="phone-btn top-[26.2%] -left-[2px] h-[6.9%]" />
+      <span aria-hidden className="phone-btn top-[34.9%] -left-[2px] h-[6.9%]" />
+      <span aria-hidden className="phone-btn top-[28.4%] -right-[2px] h-[10.8%]" />
+      <span aria-hidden className="phone-btn phone-btn-flush top-[63.4%] -right-px h-[10.2%]" />
     </div>
   );
 }

@@ -12,8 +12,8 @@ const fa = require("@fortawesome/free-brands-svg-icons");
 // Tile per brand, in the brand's own colours: white on its colour, or its colour on white.
 // `size` is the mark's share of the tile (optical sizing: dense marks smaller, open marks larger).
 const TILES = {
-  linkedin: { bg: "#0A66C2", fg: "#fff", size: 0.5 },
-  x: { bg: "#000", fg: "#fff", size: 0.46 },
+  linkedin: { bg: "#0A66C2", fg: "#fff", size: 0.62 },
+  x: { bg: "#000", fg: "#fff", size: 0.56 },
   youtube: { bg: "#fff", fg: "#FF0000", size: 0.62 },
   instagram: {
     bg: "radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285aeb 90%)",

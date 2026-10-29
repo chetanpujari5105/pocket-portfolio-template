@@ -1,5 +1,6 @@
 import { lastWeeks, parseContributionsHtml, type ContributionDay } from "../src/lib/github";
-import { expect, test } from "./fixtures";
+import { expect, settled, test, type Page } from "./fixtures";
+import snapshot from "../public/content/github-contributions.json";
 import { profile } from "../content/profile";
 
 /* Page 2's GitHub heatmap: the calendar parser, and the widget itself. */
@@ -72,5 +73,120 @@ test.describe("widget", () => {
       const box = (await item.boundingBox())!;
       expect(box.y + box.height).toBeLessThanOrEqual(dots.y + 1);
     }
+  });
+});
+
+/** Every square the tile shows: fully opaque, and the square itself is what a tap at its centre hits. */
+function squares(page: Page) {
+  return page.locator("[data-github-widget]").evaluate((widget) => {
+    const cells = [...widget.querySelectorAll<HTMLElement>(".gh-cell")].filter((c) => c.offsetParent !== null);
+    const bad = cells.filter((c) => {
+      const r = c.getBoundingClientRect();
+      return parseFloat(getComputedStyle(c).opacity) < 0.999 || document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2) !== c;
+    });
+    return { count: cells.length, bad: bad.length };
+  });
+}
+
+const gridBox = (page: Page) => page.locator("[data-github-widget] .gh-grid").boundingBox();
+
+test.describe("heatmap is never blank", () => {
+  // Requests must reach page.route (a service worker would answer them itself)
+  test.use({ serviceWorkers: "block" });
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => sessionStorage.setItem("pp-unlocked", "1"));
+  });
+
+  test("slow data: the grid shows at once, every square visible and hit-testable, through a tilt and a flip", async ({ page }, info) => {
+    test.skip(info.project.name !== "desktop", "the 3D phone");
+    test.setTimeout(60_000);
+    // Fast 4G, and the contributions response held for at least 3 s (until the checks below)
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Network.enable");
+    await cdp.send("Network.emulateNetworkConditions", { offline: false, latency: 60, downloadThroughput: (9 * 1024 * 1024) / 8, uploadThroughput: (1.5 * 1024 * 1024) / 8 });
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    await page.route("**/api/contributions", async (route) => {
+      await Promise.all([held, new Promise((r) => setTimeout(r, 3000))]);
+      await route.continue();
+    });
+
+    await page.goto("/");
+    await settled(page);
+    // Tilt the phone, then swipe to page 2
+    await page.mouse.move(1380, 860, { steps: 6 });
+    await page.waitForTimeout(400);
+    // Timed in the page, frame by frame from the click itself: when the full grid first shows,
+    // and when every square is first fully opaque and hit-testable
+    await page.evaluate(() => {
+      const w = window as unknown as { __gh: { grid?: number; ready?: number } };
+      w.__gh = {};
+      addEventListener(
+        "click",
+        () => {
+          const t0 = performance.now();
+          const tick = () => {
+            const widget = document.querySelector("[data-github-widget]");
+            const cells = widget ? [...widget.querySelectorAll<HTMLElement>(".gh-cell")].filter((c) => c.offsetParent !== null) : [];
+            const t = performance.now() - t0;
+            if (cells.length >= 17 * 7 && w.__gh.grid === undefined) w.__gh.grid = t;
+            const good = cells.every((c) => {
+              const r = c.getBoundingClientRect();
+              return parseFloat(getComputedStyle(c).opacity) >= 0.999 && document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2) === c;
+            });
+            if (cells.length && good && w.__gh.ready === undefined) w.__gh.ready = t;
+            if (t < 3000 && w.__gh.ready === undefined) requestAnimationFrame(tick);
+          };
+          requestAnimationFrame(tick);
+        },
+        { capture: true, once: true },
+      );
+    });
+    await page.getByRole("button", { name: /^Page 2 of \d+$/ }).click();
+    const widget = page.locator("[data-github-widget]");
+    await page.waitForTimeout(1200);
+    const timing = await page.evaluate(() => (window as unknown as { __gh: { grid?: number; ready?: number } }).__gh);
+
+    // The skeleton: the grid's real shape within 500 ms of the swipe (the data is still held)
+    await expect(widget.locator("[data-widget-tile]")).toHaveAttribute("data-source", "skeleton");
+    expect(timing.grid, "full grid showing (ms after the swipe)").toBeLessThanOrEqual(500);
+    // Every square fully visible and hit-testable within 1 s (the column fade takes 800 ms)
+    expect(timing.ready, "every square visible and hit-testable (ms after the swipe)").toBeLessThanOrEqual(1000);
+    expect((await squares(page)).bad).toBe(0);
+    const before = (await gridBox(page))!;
+
+    // The data lands: the same squares recolour, nothing moves
+    release();
+    await expect(widget.locator("[data-widget-tile]")).toHaveAttribute("data-source", "github", { timeout: 10_000 });
+    await expect(widget.locator(".gh-cell[data-level]").first()).toBeAttached();
+    const after = (await gridBox(page))!;
+    for (const k of ["x", "y", "width", "height"] as const) expect(Math.abs(after[k] - before[k])).toBeLessThan(0.5);
+    expect((await squares(page)).bad).toBe(0);
+
+    // Mouse moves across the studio, then a flip and back: still all there
+    for (let i = 0; i < 6; i++) await page.mouse.move(80 + i * 220, 60 + i * 140);
+    await page.waitForTimeout(500);
+    expect((await squares(page)).bad).toBe(0);
+    await page.getByRole("button", { name: "Flip the phone" }).click();
+    await page.waitForTimeout(1200);
+    await page.getByRole("button", { name: /Flip the phone/ }).click();
+    await page.waitForTimeout(1200);
+    await expect.poll(async () => (await squares(page)).bad, { timeout: 1000 }).toBe(0);
+  });
+
+  test("GitHub data unavailable: the committed snapshot fills the heatmap", async ({ page }, info) => {
+    test.skip(info.project.name !== "phone", "one project is enough");
+    await page.route("**/api/contributions", (route) => route.abort());
+    await page.goto("/");
+    await page.getByRole("button", { name: /^Page 2 of \d+$/ }).click();
+    const widget = page.locator("[data-github-widget]");
+    await expect(widget.locator("[data-widget-tile]")).toHaveAttribute("data-source", "snapshot");
+    const levels = snapshot.days.filter((d) => d.level > 0).length;
+    expect(levels).toBeGreaterThan(0);
+    expect(await widget.locator(".gh-cell[data-level]:not([data-level='0'])").count()).toBe(levels);
+    await expect(widget).toHaveAttribute("aria-label", new RegExp(`^GitHub: ${snapshot.total!.toLocaleString("en-US")} contributions`));
+    // The snapshot's newest day isn't today: no pulse
+    await expect(widget.locator(".gh-today")).toHaveCount(0);
+    await expect.poll(async () => (await squares(page)).bad).toBe(0);
   });
 });

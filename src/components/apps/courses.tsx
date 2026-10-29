@@ -1,95 +1,83 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
-import { ArrowUpRight, GraduationCap, Globe2, Search } from "lucide-react";
 
 import { courseCategories, courses } from "@content/courses";
 import { profile } from "@content/profile";
-import type { CourseCategory } from "@content/schema";
-import {
-  AppHeader,
-  AppNav,
-  AppScreen,
-  Chip,
-  ChipGroup,
-  ListGroup,
-  Pill,
-  PushView,
-  SwipeRow,
-  useLastValue,
-} from "@/components/ui/app-shell";
+import type { Course } from "@content/schema";
+import { AppHeader, AppScreen, PushView, useLastValue } from "@/components/ui/app-shell";
+import { ProminentButton, Row, Section, TINT, Tile } from "@/components/ui/grouped";
+import { blurOf } from "@/lib/placeholders";
 import { openApp } from "@/lib/router";
 import { useOS } from "@/lib/store";
-import { blurOf } from "@/lib/placeholders";
 import { countLabel } from "@/lib/utils";
+
+/*
+ * Courses, laid out like Settings: the featured course on top, then one inset-grouped section per
+ * category (a thumbnail, the title and its platform badge), each row pushing a detail screen that ends
+ * in a single Enroll button. Every word and link comes from content/courses.ts and content/profile.ts.
+ */
 
 const featured = courses.find((c) => c.featured) ?? courses[0];
 
-function Badge({ children }: { children: string }) {
+/** The platform's own badge, kept word for word, set small like an App Store label */
+const Badge = ({ children }: { children: string }) => (
+  <span className="text-ios-footnote font-semibold tracking-wide text-finish-deep dark:text-finish">{children}</span>
+);
+
+function Thumb({ course, className, sizes }: { course: Course; className: string; sizes: string }) {
   return (
-    <span className="inline-block rounded-[5px] bg-finish/20 px-1.5 py-[2px] text-[9.5px] font-bold tracking-wide text-finish-deep dark:text-finish">
-      {children}
+    <span aria-hidden className={`relative block shrink-0 overflow-hidden bg-app-background ${className}`}>
+      <Image src={course.image} {...blurOf(course.image)} alt="" fill sizes={sizes} className="object-cover" />
     </span>
   );
 }
 
-function CourseDetail({ id }: { id: string }) {
-  const course = courses.find((c) => c.id === id);
-  if (!course) return null;
+function CourseDetail({ course: c }: { course: Course }) {
   return (
     <AppScreen>
-      <div className="mb-4">
-        <AppNav backLabel="Back to Courses" title={course.title} />
-      </div>
-      <div className="relative aspect-video overflow-hidden rounded-[18px] bg-app-group">
-        <Image
-          src={course.image}
-          {...blurOf(course.image)}
-          alt=""
-          fill
-          sizes="(max-width: 600px) 100vw, 400px"
-          className="object-cover"
-        />
-      </div>
-      <div className="mt-4 flex items-center gap-2">
-        <Badge>{course.badge}</Badge>
-        <span className="text-[12.5px] text-app-muted">
-          {course.platform} · {course.category}
-        </span>
-      </div>
-      <h2 className="mt-2 text-[24px] leading-tight font-bold tracking-tight">
-        {course.title}
-      </h2>
-      <p className="mt-3 text-[15px] leading-relaxed text-app-secondary">
-        {course.blurb}
-      </p>
-      <ListGroup header="Who it's for" className="mt-5">
-        <p className="px-4 py-3 text-[15px] leading-relaxed">
-          {course.audience}
-        </p>
-      </ListGroup>
-      <Pill
-        href={course.url}
-        className="w-full py-3 text-[16px]"
-        label={`Enroll in ${course.title} on Udemy`}
-      >
-        Enroll on {course.platform}
-      </Pill>
+      <AppHeader title={c.title} backLabel="Back to Courses" subtitle={c.blurb} />
+
+      <Thumb course={c} className="mb-5 aspect-video w-full rounded-ios-xl" sizes="(max-width: 600px) 100vw, 400px" />
+
+      <Section header="About this course" inset={16}>
+        <Row title="Platform" detail={c.platform} />
+        <Row title="Category" detail={c.category} />
+        <Row title="Badge" detail={<Badge>{c.badge}</Badge>} />
+      </Section>
+
+      <Section header="Who it's for" inset={16}>
+        <Row title={c.audience} />
+      </Section>
+
+      <ProminentButton href={c.url} label={`Enroll in ${c.title} on ${c.platform} (opens in a new tab)`} data={{ "data-enroll": "" }}>
+        Enroll on {c.platform}
+      </ProminentButton>
     </AppScreen>
   );
 }
 
+function CourseRow({ course: c }: { course: Course }) {
+  return (
+    <Row
+      leading={<Thumb course={c} className="h-9 w-16 rounded-ios-s" sizes="64px" />}
+      title={c.title}
+      secondary={<Badge>{c.badge}</Badge>}
+      onPush={() => openApp("courses", c.id)}
+      label={`${c.title}, ${c.badge}, details`}
+      data={{ "data-course-row": c.id }}
+    />
+  );
+}
+
 export default function CoursesApp() {
-  const [filter, setFilter] = useState<CourseCategory | "All">("All");
   const sub = useOS((s) => (s.route.app === "courses" ? s.route.sub : null));
   const shown = useLastValue(sub);
-  const list =
-    filter === "All" ? courses : courses.filter((c) => c.category === filter);
+  const detail = courses.find((c) => c.id === shown);
 
   return (
     <>
-      <AppScreen className="pb-28">
+      <AppScreen>
         <AppHeader
           title="Courses"
           subtitle={`${profile.stats.courses}+ courses · ${countLabel(profile.stats.students)} students`}
@@ -105,152 +93,54 @@ export default function CoursesApp() {
           }
         />
 
-        <ChipGroup
-          label="Filter courses"
-          className="-mx-4 mb-5 no-scrollbar flex gap-2 overflow-x-auto px-4"
-        >
-          {(["All", ...courseCategories] as const).map((c) => (
-            <Chip key={c} active={filter === c} onClick={() => setFilter(c)}>
-              {c}
-            </Chip>
-          ))}
-        </ChipGroup>
+        <Section header="Featured" inset={16}>
+          <button
+            type="button"
+            onClick={() => openApp("courses", featured.id)}
+            aria-label={`${featured.title}, featured, details`}
+            data-course-featured
+            className="block w-full p-4 text-left transition-colors duration-150 active:bg-ios-fill-tertiary [@media(hover:hover)]:hover:bg-ios-fill-quaternary"
+          >
+            <Thumb course={featured} className="aspect-video w-full rounded-ios-l" sizes="(max-width: 600px) 100vw, 380px" />
+            <span className="mt-3 block">
+              <Badge>{featured.badge}</Badge>
+            </span>
+            <span className="mt-0.5 block text-ios-title-3 font-semibold">{featured.title}</span>
+            <span className="mt-1 block text-ios-subheadline text-app-muted">{featured.blurb}</span>
+          </button>
+        </Section>
 
-        {(filter === "All" || filter === featured.category) && (
-          <article className="relative mb-7 overflow-hidden rounded-[22px] bg-[linear-gradient(150deg,var(--accent),var(--accent-deep))] p-4 text-finish-ink shadow-[0_10px_30px_-12px_var(--accent-deep)]">
-            <button
-              type="button"
-              onClick={() => openApp("courses", featured.id)}
-              className="block w-full text-left"
-              aria-label={`${featured.title} — details`}
-            >
-              <span className="text-[11px] font-bold tracking-wider uppercase opacity-80">
-                Featured · {featured.badge}
-              </span>
-              <span className="mt-1 block text-[21px] leading-tight font-bold tracking-tight">
-                {featured.title}
-              </span>
-              <span className="relative mt-3 block aspect-video overflow-hidden rounded-[14px] shadow-lg">
-                <Image
-                  src={featured.image}
-                  {...blurOf(featured.image)}
-                  alt=""
-                  fill
-                  sizes="(max-width: 600px) 100vw, 380px"
-                  className="object-cover"
-                  priority={false}
-                />
-              </span>
-            </button>
-            <div className="mt-3 flex items-center justify-between gap-3">
-              <span className="text-[13px] leading-snug font-medium opacity-85">
-                {featured.blurb}
-              </span>
-              <Pill
-                href={featured.url}
-                label={`Enroll in ${featured.title}`}
-                className="bg-white text-black"
-              >
-                Enroll
-              </Pill>
-            </div>
-          </article>
-        )}
+        {courseCategories.map((cat) => {
+          const list = courses.filter((c) => c.category === cat);
+          if (!list.length) return null;
+          return (
+            <Section key={cat} header={cat} inset={92}>
+              {list.map((c) => (
+                <CourseRow key={c.id} course={c} />
+              ))}
+            </Section>
+          );
+        })}
 
-        <ListGroup header="Learn from me">
-          {list.map((c) => (
-            <SwipeRow
-              key={c.id}
-              label="Enroll"
-              icon={<ArrowUpRight className="size-[18px]" aria-hidden />}
-              onAction={() =>
-                window.open(c.url, "_blank", "noopener,noreferrer")
-              }
-            >
-              <div className="flex items-center gap-3 px-3 py-3">
-                <button
-                  type="button"
-                  onClick={() => openApp("courses", c.id)}
-                  className="flex min-w-0 flex-1 items-center gap-3 text-left"
-                >
-                  <span className="relative h-[48px] w-[76px] shrink-0 overflow-hidden rounded-[10px] bg-app-background">
-                    <Image
-                      src={c.image}
-                      {...blurOf(c.image)}
-                      alt=""
-                      fill
-                      sizes="80px"
-                      className="object-cover"
-                    />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="line-clamp-2 text-[14px] leading-snug font-semibold">
-                      {c.title}
-                    </span>
-                    <span className="mt-1 flex items-center gap-1.5">
-                      <Badge>{c.badge}</Badge>
-                      <span className="text-[11.5px] text-app-muted">
-                        {c.platform}
-                      </span>
-                    </span>
-                  </span>
-                </button>
-                <Pill
-                  href={c.url}
-                  label={`Enroll in ${c.title}`}
-                  className="bg-app-background px-3 text-[12.5px] text-finish-deep dark:text-finish"
-                >
-                  Enroll
-                </Pill>
-              </div>
-            </SwipeRow>
-          ))}
-        </ListGroup>
-
-        <a
-          href={profile.udemyProfile}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-between rounded-[14px] bg-app-group px-4 py-4 text-[15px] font-semibold transition-transform duration-150 active:scale-[0.98]"
-        >
-          Explore all {profile.stats.courses}+ courses
-          <span aria-hidden className="text-finish-deep dark:text-finish">
-            →
-          </span>
-        </a>
+        <Section label="More">
+          <Row
+            leading={<Tile glyph="cap" tint={TINT.orange} />}
+            title={`Explore all ${profile.stats.courses}+ courses`}
+            href={profile.udemyProfile}
+            label={`Explore all ${profile.stats.courses}+ courses on ${courses.find((c) => c.featured)?.platform ?? "my course platform"} (opens in a new tab)`}
+            data={{ "data-udemy-profile": "" }}
+          />
+          <Row leading={<Tile glyph="globe" tint={TINT.blue} />} title="Platforms" onPush={() => openApp("platforms")} />
+          <Row
+            leading={<Tile glyph="search" tint={TINT.gray} />}
+            title="Search"
+            onAction={() => useOS.getState().setSpotlightOpen(true)}
+          />
+        </Section>
       </AppScreen>
 
-      <nav
-        aria-label="Courses tabs"
-        className="glass absolute inset-x-6 bottom-[calc(max(env(safe-area-inset-bottom),8px)+22px)] z-5 flex justify-around rounded-full py-1.5 shadow-[0_8px_24px_rgb(0_0_0/0.14)]"
-      >
-        <span
-          className="flex flex-col items-center px-4 text-[10.5px] font-semibold text-finish-deep dark:text-finish"
-          aria-current="page"
-        >
-          <GraduationCap className="size-5" aria-hidden />
-          Courses
-        </span>
-        <button
-          type="button"
-          onClick={() => openApp("platforms")}
-          className="flex flex-col items-center px-4 text-[10.5px] font-medium text-app-muted"
-        >
-          <Globe2 className="size-5" aria-hidden />
-          Platforms
-        </button>
-        <button
-          type="button"
-          onClick={() => useOS.getState().setSpotlightOpen(true)}
-          className="flex flex-col items-center px-4 text-[10.5px] font-medium text-app-muted"
-        >
-          <Search className="size-5" aria-hidden />
-          Search
-        </button>
-      </nav>
-
-      <PushView open={!!sub} label="Course details">
-        {shown && <CourseDetail id={shown} />}
+      <PushView open={!!sub && !!courses.find((c) => c.id === sub)} label="Course details">
+        {detail && <CourseDetail course={detail} />}
       </PushView>
     </>
   );

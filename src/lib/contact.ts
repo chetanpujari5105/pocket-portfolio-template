@@ -12,10 +12,16 @@ export const ContactSchema = z.object({
 
 export type ContactInput = z.infer<typeof ContactSchema>;
 
+/**
+ * What /api/contact answers. `unavailable` means email isn't set up (or Gmail/Resend refuses
+ * the settings): the form offers "email me directly". `failed` is a hiccup worth retrying.
+ */
 export type ContactResult =
   | { ok: true }
   | { ok: false; reason: "invalid"; fieldErrors: Partial<Record<keyof ContactInput, string>> }
-  | { ok: false; reason: "rate-limited" | "unavailable" | "failed"; email: string };
+  | { ok: false; reason: "rate-limited"; email: string; retryAfter: number }
+  | { ok: false; reason: "unavailable" | "failed"; email: string }
+  | { ok: false; reason: "forbidden" };
 
 export function fieldErrorsOf(error: z.ZodError<ContactInput>) {
   const out: Partial<Record<keyof ContactInput, string>> = {};

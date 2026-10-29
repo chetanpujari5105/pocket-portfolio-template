@@ -33,7 +33,7 @@ export function BrandTile({ mark, as = "row", className }: { mark: BrandMark; as
   const glyph = { width: `${size * 100}%`, height: `${size * 100}%` };
   if (as === "icon")
     return (
-      <span className={cn("icon-tile icon-brand", className)} style={{ "--tile": bg } as CSSProperties}>
+      <span className={cn("icon-tile", className)} style={{ "--tile": bg } as CSSProperties}>
         <BrandGlyph mark={mark} style={{ ...glyph, color: fg }} />
       </span>
     );

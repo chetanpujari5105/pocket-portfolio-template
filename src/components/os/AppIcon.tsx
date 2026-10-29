@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 
 import { BrandGlyph } from "./BrandIcon";
 import { HOME_MARKS } from "./social-icons";
-import { Glyph } from "./icons";
+import { FaceGlyph, faceProps } from "./icons";
 
 type Props = {
   item: Pick<HomeItem, "id" | "label" | "icon" | "colors" | "app" | "href" | "brand">;
@@ -28,13 +28,15 @@ type Props = {
 
 /**
  * Press feedback on pointer-down: the tile sinks to 0.92 on the snappy spring and comes back
- * with a slight overshoot. Moving more than 10 px cancels the press (a page swipe has started).
+ * with a slight overshoot, and darkens the way a phone's icons do (`data-pressed`, CSS).
+ * Moving more than 10 px cancels the press (a page swipe has started).
  */
 function usePress() {
   const scale = useMotionValue(1);
-  const start = useRef<{ x: number; y: number } | null>(null);
+  const start = useRef<{ x: number; y: number; el: Element } | null>(null);
   const release = () => {
     if (!start.current) return;
+    start.current.el.removeAttribute("data-pressed");
     start.current = null;
     animateTo(scale, 1, springs.release);
   };
@@ -43,7 +45,8 @@ function usePress() {
     handlers: {
       onPointerDown: (e: PointerEvent) => {
         if (e.button !== 0) return;
-        start.current = { x: e.clientX, y: e.clientY };
+        start.current = { x: e.clientX, y: e.clientY, el: e.currentTarget };
+        e.currentTarget.setAttribute("data-pressed", "");
         animateTo(scale, 0.92, springs.snappy);
       },
       onPointerMove: (e: PointerEvent) => {
@@ -61,21 +64,21 @@ function usePress() {
 export function IconFace({ item, tile, tileKey }: Pick<Props, "item" | "tile"> & { tileKey?: string | null }) {
   const mark = item.brand ? HOME_MARKS[item.brand] : undefined;
   const brand = mark?.tile;
-  const style = brand
-    ? ({ "--tile": brand.bg, color: brand.fg } as CSSProperties)
-    : ({ "--c1": item.colors[0], "--c2": item.colors[1] } as CSSProperties);
+  // Brand tiles keep their official colours
+  const face = brand ? { style: { "--tile": brand.bg, color: brand.fg } as CSSProperties } : faceProps(item);
   return (
     <span
-      className={cn("icon-tile wiggle-item", brand && "icon-brand")}
+      className="icon-tile wiggle-item"
       data-icon-tile={tileKey === null ? undefined : (tileKey ?? item.app ?? item.id)}
-      style={style}
+      {...face}
     >
       {tile ??
         (brand ? (
           <BrandGlyph mark={mark!} style={{ width: `${brand.size * 100}%`, height: `${brand.size * 100}%` }} />
         ) : (
-          <Glyph name={item.icon} />
+          <FaceGlyph item={item} />
         ))}
+      <span aria-hidden className="icon-dim" />
     </span>
   );
 }
@@ -91,7 +94,7 @@ export function AppIcon({ item, showLabel = true, tile, className, onOpen, tileK
     </>
   );
   const classes = cn(
-    "icon-press flex flex-col items-center gap-[5px] rounded-[14px] outline-offset-4 select-none [-webkit-touch-callout:none] [-webkit-tap-highlight-color:transparent]",
+    "icon-press flex flex-col items-center gap-[calc(var(--icon)*0.11)] rounded-[14px] outline-offset-4 select-none [-webkit-touch-callout:none] [-webkit-tap-highlight-color:transparent]",
     className,
   );
 

@@ -1009,8 +1009,14 @@ function Sheet({
 
 const SHEET_GROUP =
   "overflow-hidden rounded-[18px] bg-app-group/95 text-app-ink shadow-[0_10px_40px_rgb(0_0_0/0.35)]";
-const SHEET_BUTTON =
-  "block w-full px-4 py-[14px] text-center text-[17px] transition-colors duration-150 active:bg-app-divider/50 focus-visible:bg-app-divider/40 outline-none";
+/* Alerts: one card, radius 34, padding 14, gap 10; title in
+   Headline, message in Footnote; 48 pt capsule buttons, none filled, the destructive one in red. */
+const ALERT =
+  "flex flex-col gap-[10px] rounded-ios-alert bg-app-group/95 p-[14px] text-app-ink shadow-[0_10px_40px_rgb(0_0_0/0.35)]";
+const ALERT_BUTTON =
+  "block h-12 w-full rounded-full px-4 text-center text-[17px] font-medium transition-colors duration-150 outline-none";
+const ALERT_PLAIN = `${ALERT_BUTTON} bg-ios-fill-tertiary active:bg-ios-fill-secondary focus-visible:bg-ios-fill-secondary`;
+const ALERT_DESTRUCTIVE = `${ALERT_BUTTON} bg-ios-destructive-bg text-ios-red active:bg-ios-fill-secondary focus-visible:bg-ios-fill-secondary`;
 
 function MenuItem({
   children,
@@ -1031,7 +1037,7 @@ function MenuItem({
       role="menuitem"
       aria-disabled={disabled || undefined}
       onClick={() => !disabled && onSelect()}
-      className={`flex w-full flex-col items-start px-4 py-[11px] text-left text-[16px] transition-colors duration-150 outline-none focus-visible:bg-app-divider/50 active:bg-app-divider/50 ${destructive ? "text-[#ff3b30]" : ""} ${disabled ? "opacity-45" : ""}`}
+      className={`flex w-full flex-col items-start px-4 py-[11px] text-left text-[16px] transition-colors duration-150 outline-none focus-visible:bg-app-divider/50 active:bg-app-divider/50 ${destructive ? "text-ios-red" : ""} ${disabled ? "opacity-45" : ""}`}
     >
       {children}
       {note && <span className="text-[12.5px] text-app-muted">{note}</span>}
@@ -1226,13 +1232,12 @@ function RemoveSheet({ entry, folder }: { entry: string; folder?: string }) {
         role="alertdialog"
         aria-labelledby="remove-title"
         aria-describedby="remove-message"
-        className="flex flex-col gap-2"
+        className={ALERT}
       >
-        <div className={`${SHEET_GROUP} divide-y divide-app-divider`}>
-          <div className="px-5 py-3 text-center">
+          <div className="px-2 pt-1.5 text-center">
             <p
               id="remove-title"
-              className="text-[13.5px] font-semibold text-app-secondary"
+              className="text-ios-headline font-semibold"
             >
               {isFolder(entry)
                 ? `Remove the “${label}” folder?`
@@ -1240,7 +1245,7 @@ function RemoveSheet({ entry, folder }: { entry: string; folder?: string }) {
             </p>
             <p
               id="remove-message"
-              className="mt-0.5 text-[13px] text-app-muted"
+              className="mt-0.5 text-ios-footnote text-app-secondary"
             >
               {isFolder(entry)
                 ? `Its ${folderApps} apps move to the App Library.`
@@ -1251,7 +1256,7 @@ function RemoveSheet({ entry, folder }: { entry: string; folder?: string }) {
             type="button"
             data-autofocus
             onClick={remove}
-            className={`${SHEET_BUTTON} text-[#ff3b30]`}
+            className={ALERT_DESTRUCTIVE}
           >
             {isFolder(entry)
               ? "Remove Folder"
@@ -1259,16 +1264,13 @@ function RemoveSheet({ entry, folder }: { entry: string; folder?: string }) {
                 ? "Remove from Folder"
                 : "Remove from Home Screen"}
           </button>
-        </div>
-        <div className={SHEET_GROUP}>
           <button
             type="button"
             onClick={close}
-            className={`${SHEET_BUTTON} font-semibold`}
+            className={ALERT_PLAIN}
           >
             Cancel
           </button>
-        </div>
       </Sheet>
     </div>
   );
@@ -1287,38 +1289,34 @@ function ResetSheet() {
         role="alertdialog"
         aria-labelledby="reset-title"
         aria-describedby="reset-message"
-        className="flex flex-col gap-2"
+        className={ALERT}
       >
-        <div className={`${SHEET_GROUP} divide-y divide-app-divider`}>
-          <div className="px-5 py-3 text-center">
+          <div className="px-2 pt-1.5 text-center">
             <p
               id="reset-title"
-              className="text-[13.5px] font-semibold text-app-secondary"
+              className="text-ios-headline font-semibold"
             >
               Reset Home Screen?
             </p>
-            <p id="reset-message" className="mt-0.5 text-[13px] text-app-muted">
+            <p id="reset-message" className="mt-0.5 text-ios-footnote text-app-secondary">
               Every app, folder and widget goes back to where it started.
             </p>
           </div>
           <button
             type="button"
             onClick={reset}
-            className={`${SHEET_BUTTON} text-[#ff3b30]`}
+            className={ALERT_DESTRUCTIVE}
           >
             Reset Home Screen
           </button>
-        </div>
-        <div className={SHEET_GROUP}>
           <button
             type="button"
             data-autofocus
             onClick={close}
-            className={`${SHEET_BUTTON} font-semibold`}
+            className={ALERT_PLAIN}
           >
             Cancel
           </button>
-        </div>
       </Sheet>
     </div>
   );
@@ -1349,13 +1347,13 @@ function AppLibrary() {
           <button
             type="button"
             onClick={close}
-            className="rounded-full px-2 py-1 text-[16px] font-semibold text-[#0a84ff]"
+            className="rounded-full px-2 py-1 text-[17px] font-semibold text-ios-label-link"
           >
             Done
           </button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4 [--icon:min(54px,13cqw)]">
-          <h3 className="mt-1 text-[13px] font-semibold tracking-wide text-app-muted uppercase">
+          <h3 className="mt-1 text-ios-headline font-semibold text-app-muted">
             Not on the Home Screen
           </h3>
           {hidden.length ? (
@@ -1397,7 +1395,7 @@ function AppLibrary() {
             </p>
           )}
 
-          <h3 className="mt-6 text-[13px] font-semibold tracking-wide text-app-muted uppercase">
+          <h3 className="mt-6 text-ios-headline font-semibold text-app-muted">
             All apps
           </h3>
           <ul className="mt-1 divide-y divide-app-divider">
@@ -1415,7 +1413,7 @@ function AppLibrary() {
                   className="flex w-full items-center gap-3 py-2 text-left [--icon:32px]"
                 >
                   <IconFace item={TILES[id]} tileKey={null} />
-                  <span className="flex-1 text-[15.5px]">
+                  <span className="flex-1 text-ios-body">
                     {TILES[id].label}
                   </span>
                   <span className="text-[12.5px] text-app-muted">
@@ -1429,7 +1427,7 @@ function AppLibrary() {
           <button
             type="button"
             onClick={() => useOS.getState().setHomeSheet({ kind: "reset" })}
-            className="mt-5 w-full rounded-[12px] bg-app-background py-3 text-[16px] font-medium text-[#ff3b30]"
+            className="mt-5 h-12 w-full rounded-full bg-ios-destructive-bg text-[17px] font-medium text-ios-red"
           >
             Reset Home Screen…
           </button>

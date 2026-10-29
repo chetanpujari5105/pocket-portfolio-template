@@ -21,7 +21,7 @@ import { ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
 
 import { useWindowMotion } from "@/components/os/window-motion";
 import { onRadioGroupKeyDown } from "@/lib/a11y";
-import { edgeZone, releaseVelocity, startedIn } from "@/lib/gesture";
+import { edgeZone, releaseVelocity } from "@/lib/gesture";
 import { fadeTransition, haptic, project, rubberBand, springs, withVelocity } from "@/lib/motion";
 import { goBack } from "@/lib/router";
 import { prefersReducedMotion } from "@/lib/store";
@@ -58,7 +58,7 @@ type ScreenState = {
 const ScreenCtx = createContext<ScreenState | null>(null);
 
 /** The layer a screen sits in: an app's root screen steps back as views stack over it. */
-const LayerCtx = createContext<"root" | "push" | "sheet">("root");
+const LayerCtx = createContext<"root" | "push">("root");
 
 /** Pull distance (after rubber-band) that starts a refresh, and where the content holds meanwhile. */
 const REFRESH_AT = 64;
@@ -277,7 +277,7 @@ export function AppScreen({
           className="pointer-events-none absolute inset-x-0 top-0 z-20 px-4 pt-[max(env(safe-area-inset-top),12px)] pb-1.5 tab:pt-[7cqh]"
         >
           <m.div aria-hidden style={{ opacity: barOpacity }} className="nav-material absolute inset-0" />
-          <div ref={setSlot} className="relative flex h-[38px] items-center justify-between gap-2" />
+          <div ref={setSlot} className="relative flex h-[44px] items-center justify-between gap-2" />
           {onRefresh && (
             <m.div
               style={{ opacity: refreshing ? 1 : spinOpacity, y: spinY }}
@@ -327,9 +327,9 @@ export function BackButton({ label = "Back", onClick = goBack }: { label?: strin
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="press-spring grid size-[34px] place-items-center rounded-full bg-app-group text-app-ink shadow-[0_0_0_0.5px_var(--app-divider)]"
+      className="press-spring glass-button grid size-[44px] place-items-center rounded-full text-app-ink"
     >
-      <ChevronLeft className="size-5" strokeWidth={2.4} aria-hidden />
+      <ChevronLeft className="size-[22px]" strokeWidth={2.4} aria-hidden />
     </button>
   );
 }
@@ -357,7 +357,7 @@ export function AppNav({
         <m.span
           aria-hidden
           style={{ opacity: screen.titleOpacity }}
-          className="min-w-0 flex-1 truncate text-center text-[16px] font-semibold tracking-tight"
+          className="min-w-0 flex-1 truncate text-center text-ios-headline font-semibold"
         >
           {title}
         </m.span>
@@ -365,10 +365,10 @@ export function AppNav({
       {action && <span className="pointer-events-auto flex items-center gap-2">{action}</span>}
     </>
   );
-  if (!screen) return <div className="flex h-[38px] items-center justify-between">{row}</div>;
+  if (!screen) return <div className="flex h-[44px] items-center justify-between">{row}</div>;
   return (
     <>
-      <div aria-hidden className="h-[38px]" />
+      <div aria-hidden className="h-[44px]" />
       {screen.slot && createPortal(row, screen.slot)}
     </>
   );
@@ -401,24 +401,24 @@ export function AppHeader({
       <m.h1
         ref={h1}
         style={{ scale, transformOrigin: "0% 50%" }}
-        className="mt-2.5 text-[34px] leading-[1.08] font-bold tracking-[-0.02em]"
+        className="mt-2 text-ios-large-title font-bold"
       >
         {title}
       </m.h1>
-      {subtitle && <p className="mt-1 text-[14px] leading-snug text-app-muted">{subtitle}</p>}
+      {subtitle && <p className="mt-0.5 text-ios-subheadline text-app-muted">{subtitle}</p>}
     </header>
   );
 }
 
 export function SectionTitle({ children }: { children: ReactNode }) {
   return (
-    <h2 className="mt-6 mb-2 px-4 text-[13px] font-medium tracking-wide text-app-muted uppercase first:mt-0">
+    <h2 className="mt-6 mb-1 px-4 pb-1.5 text-ios-headline font-semibold text-app-muted first:mt-0">
       {children}
     </h2>
   );
 }
 
-/** Grouped list card with inset hairline dividers. */
+/** Inset grouped section (radius XXL) with opaque separators inset to the row's text. */
 export function ListGroup({
   header,
   footer,
@@ -434,7 +434,7 @@ export function ListGroup({
   return (
     <section className={cn("mb-6", className)}>
       {header && <SectionTitle>{header}</SectionTitle>}
-      <div className="overflow-hidden rounded-[14px] bg-app-group">
+      <div className="overflow-hidden rounded-ios-xxl bg-app-group">
         {rows.map((row, i) => (
           <div key={i} className="relative">
             {row}
@@ -444,7 +444,7 @@ export function ListGroup({
           </div>
         ))}
       </div>
-      {footer && <p className="mt-2 px-4 text-[12.5px] leading-snug text-app-muted">{footer}</p>}
+      {footer && <p className="mt-2 px-4 text-ios-footnote leading-[1rem] text-app-muted">{footer}</p>}
     </section>
   );
 }
@@ -465,17 +465,17 @@ export function ListRow({ title, subtitle, leading, trailing, onClick, href, che
     <>
       {leading && <span className="shrink-0">{leading}</span>}
       <span className="min-w-0 flex-1">
-        <span className="block text-[15.5px] leading-snug font-medium">{title}</span>
-        {subtitle && <span className="mt-0.5 block text-[13px] leading-snug text-app-muted">{subtitle}</span>}
+        <span className="block text-ios-body">{title}</span>
+        {subtitle && <span className="block text-ios-subheadline text-app-muted">{subtitle}</span>}
       </span>
       {trailing}
-      {chevron && <ChevronRight className="size-4 shrink-0 text-app-muted" aria-hidden />}
+      {chevron && (onClick || href) && <ChevronRight className="size-4 shrink-0 text-ios-label-tertiary" strokeWidth={2.6} aria-hidden />}
       {href && !chevron && !trailing && <ExternalLink className="size-3.5 shrink-0 text-app-muted" aria-hidden />}
     </>
   );
   const classes = cn(
-    "flex w-full items-center gap-3 px-4 py-3 text-left transition-colors duration-150",
-    (onClick || href) && "active:bg-app-divider/40",
+    "flex min-h-[3.25rem] w-full items-center gap-3 px-4 py-2.5 text-left transition-colors duration-150",
+    (onClick || href) && "active:bg-ios-fill-tertiary",
     className,
   );
   if (href)
@@ -491,121 +491,6 @@ export function ListRow({ title, subtitle, leading, trailing, onClick, href, che
       </button>
     );
   return <div className={classes}>{body}</div>;
-}
-
-/* ───────────────────────── Swipe actions ───────────────────────── */
-
-const ACTION_W = 84;
-/** Only one row stays open at a time. */
-let closeOpenRow: (() => void) | null = null;
-
-/**
- * A list row that swipes left to reveal an action. Swipe past ~55% (or flick) to run it outright.
- * The action stays reachable without the gesture elsewhere in each app (a visible button).
- */
-export function SwipeRow({
-  children,
-  label,
-  icon,
-  onAction,
-  className,
-}: {
-  children: ReactNode;
-  label: string;
-  icon?: ReactNode;
-  onAction: () => void;
-  className?: string;
-}) {
-  const x = useMotionValue(0);
-  const ref = useRef<HTMLDivElement>(null);
-  const dragged = useRef(false);
-  const [open, setOpen] = useState(false);
-  const actionWidth = useTransform(x, (v) => Math.max(ACTION_W, -v));
-  const labelOpacity = useTransform(x, [-ACTION_W * 0.4, -ACTION_W], [0, 1]);
-
-  const close = useCallback(() => {
-    animate(x, 0, springs.snappy);
-    setOpen(false);
-  }, [x]);
-  useEffect(() => () => {
-    if (closeOpenRow === close) closeOpenRow = null;
-  }, [close]);
-
-  useDrag(
-    (s) => {
-      const el = ref.current;
-      if (!el || s.tap) return;
-      const W = el.offsetWidth;
-      const k = scaleOf(el);
-      if (s.first) {
-        dragged.current = true;
-        if (closeOpenRow && closeOpenRow !== close) closeOpenRow();
-      }
-      const base = (s.memo as number | undefined) ?? x.get();
-      const next = base + s.movement[0] / k;
-      x.set(next > 0 ? rubberBand(next, W * 0.5) : Math.max(next, -W));
-      if (s.last) {
-        const v = releaseVelocity(s, 0) / k;
-        const end = x.get() + project(v, 0.99);
-        if (x.get() < -W * 0.55 || (end < -W * 0.8 && x.get() < -ACTION_W)) {
-          haptic();
-          onAction();
-          animate(x, 0, withVelocity("smooth", v));
-          setOpen(false);
-        } else if (end < -ACTION_W / 2) {
-          animate(x, -ACTION_W, withVelocity("snappy", v));
-          setOpen(true);
-          closeOpenRow = close;
-        } else {
-          animate(x, 0, withVelocity("snappy", v));
-          setOpen(false);
-        }
-      }
-      return base;
-    },
-    { target: ref, axis: "x", filterTaps: true, threshold: 8, pointer: { capture: true } },
-  );
-
-  return (
-    <div className={cn("relative overflow-hidden", className)}>
-      <m.button
-        type="button"
-        tabIndex={open ? 0 : -1}
-        aria-hidden={!open}
-        onClick={() => {
-          onAction();
-          close();
-        }}
-        style={{ width: actionWidth }}
-        className="absolute inset-y-0 right-0 flex items-center justify-end bg-finish text-[13px] font-semibold text-finish-ink"
-      >
-        <m.span style={{ opacity: labelOpacity }} className="flex w-[84px] flex-col items-center gap-1">
-          {icon}
-          {label}
-        </m.span>
-      </m.button>
-      <m.div
-        ref={ref}
-        data-swipe-row
-        style={{ x }}
-        className="relative touch-pan-y bg-app-group"
-        onPointerDownCapture={() => {
-          dragged.current = false;
-        }}
-        onClickCapture={(e) => {
-          // A swipe, or a tap that closes an open row, shouldn't also press what's under it
-          if (dragged.current || open) {
-            e.preventDefault();
-            e.stopPropagation();
-            if (open && !dragged.current) close();
-          }
-          dragged.current = false;
-        }}
-      >
-        {children}
-      </m.div>
-    </div>
-  );
 }
 
 /* ───────────────────────── Chips and segmented controls ───────────────────────── */
@@ -665,36 +550,6 @@ export function Chip({
   );
 }
 
-export function Pill({
-  children,
-  href,
-  onClick,
-  className,
-  label,
-}: {
-  children: ReactNode;
-  href?: string;
-  onClick?: () => void;
-  className?: string;
-  label?: string;
-}) {
-  const classes = cn(
-    "press-spring inline-flex shrink-0 items-center justify-center rounded-full bg-finish px-4 py-1.5 text-[13.5px] font-bold text-finish-ink",
-    className,
-  );
-  if (href)
-    return (
-      <a href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className={classes}>
-        {children}
-      </a>
-    );
-  return (
-    <button type="button" onClick={onClick} aria-label={label} className={classes}>
-      {children}
-    </button>
-  );
-}
-
 export function Switch({
   checked,
   onChange,
@@ -712,15 +567,15 @@ export function Switch({
       aria-label={label}
       onClick={() => onChange(!checked)}
       className={cn(
-        "relative h-[31px] w-[51px] shrink-0 rounded-full transition-colors duration-200",
-        checked ? "bg-available" : "bg-app-divider",
+        "relative h-[28px] w-[64px] shrink-0 rounded-full transition-colors duration-200",
+        checked ? "bg-ios-green" : "bg-ios-label-tertiary",
       )}
     >
       <m.span
-        animate={{ x: checked ? 20 : 0 }}
+        animate={{ x: checked ? 21 : 0 }}
         transition={springs.snappy}
         initial={false}
-        className="absolute top-[2px] left-[2px] size-[27px] rounded-full bg-white shadow-[0_2px_6px_rgb(0_0_0/0.2)]"
+        className="absolute top-[2px] left-[2px] h-[24px] w-[39px] rounded-full bg-white shadow-[0_1px_4px_rgb(0_0_0/0.18)]"
       />
     </button>
   );
@@ -740,7 +595,7 @@ export function Segmented<T extends string>({
   const id = useId();
   return (
     <LayoutGroup id={id}>
-      <div role="radiogroup" aria-label={label} onKeyDown={onRadioGroupKeyDown} className="flex rounded-[10px] bg-app-divider/50 p-[2px]">
+      <div role="radiogroup" aria-label={label} onKeyDown={onRadioGroupKeyDown} className="flex h-8 gap-1 rounded-full bg-ios-fill-tertiary p-[2px]">
         {options.map((o) => (
           <button
             key={o.value}
@@ -750,15 +605,14 @@ export function Segmented<T extends string>({
             tabIndex={value === o.value ? 0 : -1}
             onClick={() => onChange(o.value)}
             className={cn(
-              "relative flex-1 rounded-[8px] px-2 py-1.5 text-[13px] font-semibold transition-colors duration-150",
-              value === o.value ? "text-app-ink" : "text-app-muted",
+              "relative flex-1 rounded-full px-2 text-[0.8125rem] font-semibold text-app-ink transition-colors duration-150",
             )}
           >
             {value === o.value && (
               <m.span
                 layoutId="segment-indicator"
                 transition={springs.snappy}
-                className="absolute inset-0 rounded-[8px] bg-app-group shadow-sm"
+                className="absolute inset-0 rounded-full bg-ios-segmented-selected shadow-[0_2px_8px_rgb(0_0_0/0.1)]"
               />
             )}
             <span className="relative">{o.label}</span>
@@ -887,200 +741,7 @@ export function Stars({ rating }: { rating: number }) {
   return (
     <span aria-label={`${rating} out of 5 stars`} className="text-[13px] tracking-[2px] text-finish">
       {"★".repeat(rating)}
-      <span className="text-app-divider">{"★".repeat(5 - rating)}</span>
+      <span className="text-ios-gray-4">{"★".repeat(5 - rating)}</span>
     </span>
-  );
-}
-
-/* ───────────────────────── Sheets ───────────────────────── */
-
-/**
- * Bottom sheet with medium and large detents. Drag the grabber (or the content from its top) and
- * it lands on the detent the flick is heading for; dragging below medium closes it. The app behind
- * scales to 0.94 with rounded corners. The grabber is also a button that toggles the detent; the
- * backdrop and Esc close it.
- */
-export function Sheet({ open, children, label }: { open: boolean; children: ReactNode; label: string }) {
-  const win = useWindowMotion();
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [mounted, setMounted] = usePresence(open);
-  const y = useMotionValue(10_000);
-  const fade = useMotionValue(1);
-  const [expanded, setExpanded] = useState(false);
-  // Each opening starts at the medium detent
-  const [wasOpen, setWasOpen] = useState(open);
-  if (open !== wasOpen) {
-    setWasOpen(open);
-    if (open) setExpanded(false);
-  }
-  const release = useRef(0);
-  const openRef = useRef(open);
-  const firstRun = useRef(true);
-  const dragged = useRef(false);
-
-  /** Offsets of the (92%-tall) panel below fully open: large, medium, closed. */
-  const detents = useCallback(() => {
-    const H = wrapRef.current?.clientHeight ?? 800;
-    const panelH = H * 0.92;
-    const contentH = (contentRef.current?.scrollHeight ?? panelH) + 26;
-    const showLarge = Math.min(contentH, panelH);
-    const showMedium = Math.min(showLarge, Math.max(H * 0.5, Math.min(contentH, H * 0.5)));
-    return { large: panelH - showLarge, medium: panelH - showMedium, closed: panelH + 24 };
-  }, []);
-
-  const progress = useTransform(y, (v) => {
-    const d = detents();
-    return clamp01(1 - (v - d.medium) / (d.closed - d.medium));
-  });
-
-  useEffect(() => {
-    if (!win || !mounted) return;
-    const unsubscribe = progress.on("change", (p) => win.sheet.set(prefersReducedMotion() ? 0 : p));
-    return () => {
-      unsubscribe();
-      win.sheet.set(0);
-    };
-  }, [win, progress, mounted]);
-
-  useLayoutEffect(() => {
-    openRef.current = open;
-    const initial = firstRun.current;
-    firstRun.current = false;
-    const reduce = prefersReducedMotion();
-    if (open) {
-      const d = detents();
-      if (initial) {
-        // Deep link: already open
-        y.set(d.medium);
-        return;
-      }
-      if (reduce) {
-        y.set(d.medium);
-        fade.set(0);
-        animate(fade, 1, fadeTransition);
-        return;
-      }
-      if (y.get() > d.closed) y.set(d.closed);
-      animate(y, d.medium, springs.smooth);
-      return;
-    }
-    if (!mounted) return;
-    const done = () => {
-      if (!openRef.current) setMounted(false);
-    };
-    if (reduce) animate(fade, 0, fadeTransition).then(done);
-    else animate(y, detents().closed, withVelocity("smooth", release.current)).then(done);
-    release.current = 0;
-    // `mounted` only gates the close; re-running on it would replay the open
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, detents, y, fade, setMounted]);
-
-  const settle = (target: number, velocity: number) => {
-    const d = detents();
-    if (target === d.closed) {
-      release.current = velocity;
-      goBack();
-      return;
-    }
-    animate(y, target, withVelocity("smooth", velocity));
-    setExpanded(target === d.large && d.large < d.medium);
-  };
-
-  useDrag(
-    (s) => {
-      const panel = panelRef.current;
-      if (!panel) return;
-      const k = scaleOf(panel);
-      const d = detents();
-      if (s.first) {
-        const content = contentRef.current;
-        const fromGrabber = startedIn(s.event, "[data-grabber]");
-        const atTop = (content?.scrollTop ?? 0) <= 0;
-        const atLarge = Math.abs(y.get() - d.large) < 2;
-        // At full height the content scrolls; it only drags the sheet when pulled down from its top
-        if (!fromGrabber && atLarge && !(atTop && s.direction[1] > 0)) {
-          s.cancel();
-          return;
-        }
-        dragged.current = true;
-      }
-      const base = (s.memo as number | undefined) ?? y.get();
-      const next = base + s.movement[1] / k;
-      y.set(next < d.large ? d.large - rubberBand(d.large - next, d.closed) : next);
-      if (s.last) {
-        const v = releaseVelocity(s, 1) / k;
-        const aim = y.get() + project(v, 0.99);
-        const target = [d.large, d.medium, d.closed].reduce((a, b) => (Math.abs(b - aim) < Math.abs(a - aim) ? b : a));
-        settle(target, v);
-      }
-      return base;
-    },
-    { target: panelRef, axis: "y", filterTaps: true, threshold: 6, pointer: { capture: true } },
-  );
-
-  // Scrolling down at medium grows the sheet first, like dragging it up
-  useEffect(() => {
-    const content = contentRef.current;
-    if (!content || !mounted) return;
-    const onWheel = (e: WheelEvent) => {
-      const d = detents();
-      if (e.deltaY > 0 && !expanded && d.large < d.medium) {
-        e.preventDefault();
-        settle(d.large, 0);
-      }
-    };
-    content.addEventListener("wheel", onWheel, { passive: false });
-    return () => content.removeEventListener("wheel", onWheel);
-  });
-
-  if (!mounted) return null;
-  return (
-    <div ref={wrapRef} className="absolute inset-0 z-10" role="region" aria-label={label}>
-      <m.button
-        type="button"
-        tabIndex={-1}
-        aria-label="Close"
-        onClick={() => goBack()}
-        style={{ opacity: prefersReducedMotion() ? fade : progress }}
-        className="absolute inset-0 bg-black/30"
-      />
-      <LayerCtx.Provider value="sheet">
-        <m.div
-          ref={panelRef}
-          data-sheet
-          style={{ y, opacity: fade }}
-          className="absolute inset-x-0 bottom-0 flex h-[92%] flex-col rounded-t-[26px] bg-app-background shadow-[0_-10px_40px_rgb(0_0_0/0.18)]"
-        >
-          <button
-            type="button"
-            data-grabber
-            aria-label={expanded ? "Shrink sheet" : "Expand sheet"}
-            onPointerDown={() => {
-              dragged.current = false;
-            }}
-            onClick={() => {
-              if (dragged.current) return;
-              const d = detents();
-              if (d.large >= d.medium) settle(d.closed, 0);
-              else settle(expanded ? d.medium : d.large, 0);
-            }}
-            className="flex h-[26px] shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing"
-          >
-            <span aria-hidden className="block h-[5px] w-10 rounded-full bg-app-divider" />
-          </button>
-          <div
-            ref={contentRef}
-            className={cn(
-              "no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-[max(env(safe-area-inset-bottom),28px)]",
-              expanded ? "touch-pan-y" : "touch-none",
-            )}
-          >
-            {children}
-          </div>
-        </m.div>
-      </LayerCtx.Provider>
-    </div>
   );
 }

@@ -3,13 +3,14 @@ import * as z from "zod";
 import { appsLayout } from "./apps";
 import { ask } from "./ask";
 import { fallbackPosts } from "./blog";
+import { lockProjectId } from "./lock-notes";
 import { courses } from "./courses";
 import { expertise } from "./expertise";
 import { philosophy } from "./philosophy";
 import { platforms } from "./platforms";
 import { profile } from "./profile";
 import { projects } from "./projects";
-import { reviews } from "./reviews";
+import { reviewSource, reviews } from "./reviews";
 import {
   AppsLayoutSchema,
   AskCopySchema,
@@ -21,6 +22,7 @@ import {
   ProfileSchema,
   ProjectSchema,
   ReviewSchema,
+  ReviewSourceSchema,
   ServiceSchema,
   StorySchema,
   TimelineEntrySchema,
@@ -44,6 +46,7 @@ export function validateContent() {
   z.array(PhilosophySchema).parse(philosophy);
   z.array(BlogPostSchema).parse(fallbackPosts);
   z.array(ReviewSchema).parse(reviews);
+  ReviewSourceSchema.parse(reviewSource);
   z.array(ProjectSchema).parse(projects);
   AppsLayoutSchema.parse(appsLayout);
   AskCopySchema.parse(ask);
@@ -56,6 +59,10 @@ export function validateContent() {
     for (const id of area.relatedServices)
       if (!serviceIds.has(id)) throw new Error(`expertise "${area.id}" links unknown service "${id}"`);
   }
+  for (const r of reviews)
+    if (r.sample && r.verified) throw new Error(`review "${r.id}" is marked both sample and verified`);
+  const projectIds = new Set(projects.map((p) => p.id));
+  if (!projectIds.has(lockProjectId)) throw new Error(`lock-notes.ts lockProjectId "${lockProjectId}" is not in projects.ts`);
   if (courses.filter((c) => c.featured).length !== 1)
     throw new Error("courses.ts needs exactly one featured course");
   return true;

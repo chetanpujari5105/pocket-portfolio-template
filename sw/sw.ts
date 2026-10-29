@@ -6,7 +6,7 @@ import { CacheFirst, ExpirationPlugin, NetworkFirst, Serwist, StaleWhileRevalida
  * - Pages: network first (fresh HTML and a deploy's new chunks), the last copy offline or past 3 s.
  * - /_next/static: cache first. Hashed and immutable, so once the app's chunks have been fetched
  *   (the home screen prefetches every app at idle) a repeat visit runs entirely from the cache.
- * - Images, the Substack feed: stale-while-revalidate, refreshed in the background.
+ * - Images, the 3D phone model, the Substack feed: stale-while-revalidate, refreshed in the background.
  * - Precached at install: the start page and icons.
  * A new deploy's worker takes over at once (skipWaiting + clientsClaim) and drops old precaches.
  */
@@ -46,15 +46,15 @@ const serwist = new Serwist({
       }),
     },
     {
-      // The Substack feed refresh; GitHub and YouTube data arrive inside the page itself
-      matcher: ({ url, sameOrigin }) => sameOrigin && url.pathname === "/api/feed",
+      // The Substack feed refresh and the GitHub heatmap's data; YouTube's arrives inside the page
+      matcher: ({ url, sameOrigin }) => sameOrigin && (url.pathname === "/api/feed" || url.pathname === "/api/contributions"),
       handler: new StaleWhileRevalidate({
         cacheName: "feed",
         plugins: [new ExpirationPlugin({ maxEntries: 4, maxAgeSeconds: 7 * DAY })],
       }),
     },
     {
-      matcher: ({ url, sameOrigin }) => sameOrigin && /^\/(icons\/|content\/|icon\.svg|apple-icon|manifest\.webmanifest)/.test(url.pathname),
+      matcher: ({ url, sameOrigin }) => sameOrigin && /^\/(icons\/|content\/|models\/|icon\.svg|apple-icon|manifest\.webmanifest)/.test(url.pathname),
       handler: new StaleWhileRevalidate({ cacheName: "assets" }),
     },
   ],

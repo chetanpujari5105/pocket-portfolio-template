@@ -27,7 +27,7 @@ export const profile = {
   avatar: "/content/profile.webp", // ✏️ EDIT: replace public/content/profile.webp with your photo (square)
   badges: ["Course Creator", "Designer", "Speaker"], // ✏️ EDIT: up to 3 short badges
   highlight: {
-    title: "Sample Workshop · Example Conference", // ✏️ EDIT: one proud moment
+    title: "Example Conference (sample keynote)", // ✏️ EDIT: one proud moment: "Place (what)"
     text: "Replace this with a talk, award or project you're proud of, in one or two sentences.", // ✏️ EDIT
   },
   // ✏️ EDIT: your profiles. Remove any you don't use. `id` picks the official brand mark.
@@ -35,6 +35,7 @@ export const profile = {
     { id: "linkedin", label: "LinkedIn", handle: "your-linkedin", url: "https://example.com/linkedin" },
     { id: "x", label: "X", handle: "@your_handle", url: "https://example.com/x" },
     { id: "instagram", label: "Instagram", handle: "@your_handle", url: "https://example.com/instagram" },
+    { id: "ai-instagram", label: "AI Instagram", handle: "@your_second_handle", url: "https://example.com/ai-instagram" },
     { id: "substack", label: "Substack", handle: "your-newsletter", url: "https://example.com/newsletter" },
     { id: "udemy", label: "Udemy", handle: "your-udemy", url: "https://example.com/udemy" },
     { id: "youtube", label: "YouTube", handle: "@your_channel", url: "https://example.com/youtube" },

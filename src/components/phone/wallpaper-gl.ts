@@ -1,5 +1,5 @@
 import type { Wallpaper as WallpaperId } from "@/lib/store";
-import { prefersReducedMotion } from "@/lib/store";
+import { prefersReducedMotion, useOS } from "@/lib/store";
 import { launchProgress } from "@/lib/motion";
 import { setWallpaperTop } from "@/lib/theme-color";
 
@@ -11,7 +11,11 @@ import { setWallpaperTop } from "@/lib/theme-color";
 const VERT = `attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}`;
 
 // Ribbons add a thin rim light at each band edge, and every mode gets fine grain (no banding,
-// texture for frosted glass to pick up). GLSL comments would ship in the bundle, so they live here.
+// texture for frosted glass to pick up). Behind the home screen's label rows (`lb`: centre and
+// half-height, as a share of the screen height from the top) highlights are compressed toward a
+// luminance cap with a soft knee, so white labels keep 4.5:1 on every finish; `on` fades that out
+// on the lock screen. Luminance is estimated as col² (a little above the true sRGB curve, so the
+// cap errs dark). GLSL comments would ship in the bundle, so they live here.
 const FRAG = `
 precision mediump float;
 uniform vec2 r;
@@ -19,7 +23,8 @@ uniform float t;
 uniform vec3 a;
 uniform vec3 d;
 uniform int mode;
-uniform float dark;
+uniform vec2 lb[12];
+uniform float on;
 
 vec3 tone(vec3 c){ return c / (c + vec3(0.9)) * 1.6; }
 
@@ -56,7 +61,17 @@ void main(){
   col = tone(col);
   float vig = smoothstep(1.25, .35, length(q * vec2(.9, .7)));
   col *= mix(.55, 1., vig);
-  col *= mix(1., .82, dark);
+  float y = 1. - gl_FragCoord.y / r.y;
+  float m = 0.;
+  for (int i = 0; i < 12; i++) {
+    float h = lb[i].y;
+    m = max(m, 1. - smoothstep(h, h * 3.2, abs(y - lb[i].x)));
+  }
+  float L = dot(col * col, vec3(.2126, .7152, .0722));
+  float cap = mix(.58, .16, m);
+  float k = cap * .5;
+  float Lc = L > k ? k + (L - k) / (1. + (L - k) / (cap - k)) : L;
+  col *= mix(1., sqrt(Lc / max(L, 1e-5)), on);
   col += (fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) - .5) * .022;
   gl_FragColor = vec4(col, 1.);
 }`;
@@ -141,17 +156,55 @@ export function startWallpaper(
       a: gl.getUniformLocation(program, "a"),
       d: gl.getUniformLocation(program, "d"),
       mode: gl.getUniformLocation(program, "mode"),
-      dark: gl.getUniformLocation(program, "dark"),
+      lb: gl.getUniformLocation(program, "lb"),
+      on: gl.getUniformLocation(program, "on"),
     };
+
+    // Label rows of every home page, merged, as shares of the canvas height. Read from layout on
+    // the next draw after the home geometry, layout or lock state changes (never per frame)
+    const screen = canvas.closest<HTMLElement>("[data-screen]") ?? canvas.parentElement!;
+    let bandsDirty = true;
+    let on = useOS.getState().locked ? 0 : 1;
+    const readBands = () => {
+      bandsDirty = false;
+      const box = canvas.getBoundingClientRect();
+      if (!box.height) return;
+      const rows: [number, number][] = [];
+      for (const label of screen.querySelectorAll<HTMLElement>("[data-home-grid] .icon-label")) {
+        const r = label.getBoundingClientRect();
+        if (!r.height) continue;
+        const top = (r.top - box.top) / box.height, bottom = (r.bottom - box.top) / box.height;
+        const near = rows.find(([t, b]) => top < b + 0.004 && bottom > t - 0.004);
+        if (near) [near[0], near[1]] = [Math.min(near[0], top), Math.max(near[1], bottom)];
+        else rows.push([top, bottom]);
+      }
+      const data = new Float32Array(24).fill(-10);
+      rows.slice(0, 12).forEach(([t, b], i) => {
+        data[i * 2] = (t + b) / 2;
+        data[i * 2 + 1] = (b - t) / 2;
+      });
+      gl.uniform2fv(u.lb, data);
+    };
+    const dirty = () => {
+      bandsDirty = true;
+      if (still) requestAnimationFrame(() => draw(start + 52_000));
+    };
+    let settle = 0;
+    const unsubscribe = useOS.subscribe((state, prev) => {
+      if (state.homeGeo !== prev.homeGeo || state.home !== prev.home) dirty();
+      // Once more after the unlock, when the icons have flown into place
+      if (state.locked !== prev.locked) {
+        dirty();
+        window.clearTimeout(settle);
+        settle = window.setTimeout(dirty, 1200);
+      }
+    });
 
     const readColors = () => {
       const css = getComputedStyle(document.documentElement);
-      gl.uniform3f(u.a, ...parseColor(css.getPropertyValue("--accent")));
-      gl.uniform3f(u.d, ...parseColor(css.getPropertyValue("--accent-deep")));
-      gl.uniform1f(
-        u.dark,
-        document.documentElement.classList.contains("dark") ? 1 : 0,
-      );
+      // The wallpaper's own tint when the finish sets one (Burgundy: deeper wine than its accent)
+      gl.uniform3f(u.a, ...parseColor(css.getPropertyValue("--wall") || css.getPropertyValue("--accent")));
+      gl.uniform3f(u.d, ...parseColor(css.getPropertyValue("--wall-deep") || css.getPropertyValue("--accent-deep")));
     };
     gl.uniform1i(u.mode, MODES[wallpaper]);
     readColors();
@@ -163,6 +216,7 @@ export function startWallpaper(
     const sizer = new ResizeObserver(([entry]) => {
       cssW = entry.contentRect.width;
       cssH = entry.contentRect.height;
+      bandsDirty = true;
     });
     sizer.observe(canvas);
     const resize = () => {
@@ -190,6 +244,10 @@ export function startWallpaper(
     const still = prefersReducedMotion();
     const draw = (now: number) => {
       resize();
+      if (bandsDirty) readBands();
+      const target = useOS.getState().locked ? 0 : 1;
+      on = still ? target : on + (target - on) * 0.2;
+      gl.uniform1f(u.on, on);
       gl.uniform1f(u.t, (now - start) / 1000);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
       canvas.dataset.ready = "";
@@ -249,6 +307,8 @@ export function startWallpaper(
       for (const type of INPUTS) window.removeEventListener(type, onInput, { capture: true });
       sizer.disconnect();
       observer.disconnect();
+      unsubscribe();
+      window.clearTimeout(settle);
       document.removeEventListener("visibilitychange", play);
       window.removeEventListener("resize", play);
       gl.deleteProgram(program);

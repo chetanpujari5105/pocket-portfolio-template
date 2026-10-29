@@ -1,55 +1,104 @@
 "use client";
 
 import { philosophy } from "@content/philosophy";
-import { services, servicesIntro, servicesTitle } from "@content/services";
-import { AppHeader, AppScreen, Pill, SectionTitle } from "@/components/ui/app-shell";
+import type { Service } from "@content/schema";
+import { services, servicesFooter, servicesIntro, servicesTitle } from "@content/services";
+import { AppHeader, AppScreen, PushView, useLastValue } from "@/components/ui/app-shell";
+import { ProminentButton, Row, Section } from "@/components/ui/grouped";
+import { ServiceTile } from "@/components/apps/service-tile";
 import { openApp } from "@/lib/router";
 import { useOS } from "@/lib/store";
 
-function letsTalk(subject: string) {
+/*
+ * Services, laid out like Settings: one inset-grouped list (a tile, the service's name and one line
+ * about it), each row pushing a detail screen that ends in a single "Start a conversation" button.
+ * Every word comes from content/services.ts and content/philosophy.ts.
+ */
+
+/** Opens Contact with the subject filled in (or empty, from the list's own Contact row). */
+function contact(subject = "") {
   useOS.getState().setContactSubject(subject);
   openApp("contact");
 }
 
-export default function ServicesApp() {
+function ServiceDetail({ service: s }: { service: Service }) {
   return (
     <AppScreen>
-      <AppHeader title={servicesTitle} subtitle={servicesIntro} />
+      <AppHeader title={s.title} backLabel="Back to Services" subtitle={s.summary} />
 
-      <ul className="mb-6 space-y-3">
-        {services.map((s) => (
-          <li key={s.id} className="rounded-[18px] bg-app-group p-4">
-            <div className="flex items-start gap-3">
-              <span aria-hidden className="grid size-11 shrink-0 place-items-center rounded-[13px] bg-app-background text-[24px]">
-                {s.emoji}
-              </span>
-              <div className="min-w-0">
-                <h2 className="text-[17px] leading-snug font-bold tracking-tight">{s.title}</h2>
-                <p className="mt-1 text-[14px] leading-relaxed text-app-secondary">{s.description}</p>
-              </div>
-            </div>
-            <div className="mt-3 flex justify-end">
-              <Pill onClick={() => letsTalk(s.subject)} label={`Let's talk about: ${s.title}`}>
-                Let&apos;s talk
-              </Pill>
-            </div>
-          </li>
+      <Section header="What you get" inset={16}>
+        {s.points.map((p) => (
+          <Row key={p} title={p} />
         ))}
-      </ul>
+      </Section>
 
-      <SectionTitle>Why people trust me</SectionTitle>
-      <ul className="space-y-2">
-        {philosophy.map((p) => (
-          <li key={p.quote} className="flex gap-3 rounded-[14px] bg-app-group px-4 py-3">
-            <span aria-hidden className="text-[20px] leading-none">
-              {p.emoji}
-            </span>
-            <blockquote className="border-l-2 border-finish pl-3 text-[14.5px] leading-snug italic">
-              {p.quote}
-            </blockquote>
-          </li>
-        ))}
-      </ul>
+      <Section header="Good for" inset={16}>
+        <Row title={s.goodFor} />
+      </Section>
+
+      {s.tools && (
+        <Section header={s.tools.label} inset={16}>
+          {s.tools.items.map((t) => (
+            <Row key={t} title={t} />
+          ))}
+        </Section>
+      )}
+
+      {s.id === "courses" && (
+        <>
+          <Section header="How I teach" inset={16}>
+            {philosophy.map((p) => (
+              <Row key={p.quote} title={p.quote} />
+            ))}
+          </Section>
+          <Section inset={16} label="More">
+            <Row title="Browse courses" onPush={() => openApp("courses")} data={{ "data-service-courses": "" }} />
+          </Section>
+        </>
+      )}
+
+      <ProminentButton
+        onClick={() => contact(s.title)}
+        label={`Start a conversation about ${s.title}`}
+        data={{ "data-start-conversation": "" }}
+      >
+        Start a conversation
+      </ProminentButton>
     </AppScreen>
+  );
+}
+
+export default function ServicesApp() {
+  const sub = useOS((s) => (s.route.app === "services" ? s.route.sub : null));
+  const shown = useLastValue(sub);
+  const detail = services.find((s) => s.id === shown);
+
+  return (
+    <>
+      <AppScreen>
+        <AppHeader title={servicesTitle} subtitle={servicesIntro} />
+
+        <Section label="Services" footer={servicesFooter}>
+          {services.map((s) => (
+            <Row
+              key={s.id}
+              leading={<ServiceTile id={s.id} />}
+              title={s.title}
+              secondary={s.summary}
+              onPush={() => openApp("services", s.id)}
+              data={{ "data-service-row": s.id }}
+            />
+          ))}
+        </Section>
+
+        <Section inset={16} label="Contact">
+          <Row title="Contact me" onAction={() => contact()} data={{ "data-contact-row": "" }} />
+        </Section>
+      </AppScreen>
+
+      <PushView open={!!sub && !!services.find((s) => s.id === sub)} label="Service details">
+        {detail && <ServiceDetail service={detail} />}
+      </PushView>
+    </>
   );
 }

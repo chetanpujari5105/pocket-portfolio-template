@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, Geist } from "next/font/google";
+import { preload } from "react-dom";
 
 import { ThemeSync } from "@/components/ui/theme-toggle";
 import { appsLayout } from "@content/apps";
 import { profile } from "@content/profile";
+import { PACK_ICONS } from "@/lib/icon-pack";
 import { SITE_URL } from "@/lib/site";
 import { buildInitScript } from "@/lib/theme";
 import "./globals.css";
@@ -62,6 +64,8 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
+  // The icon pack's faces are CSS backgrounds, found late; ask for them with the page (~25 KB)
+  for (const href of PACK_ICONS) preload(href, { as: "image", type: "image/webp" });
   return (
     <html
       lang="en"

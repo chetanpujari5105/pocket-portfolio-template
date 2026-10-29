@@ -1,11 +1,7 @@
 import { expect, test, type Page } from "./fixtures";
-import { fallbackPosts, substackFeed } from "../content/blog";
-
-// Blog widgets and the new-post banner only exist when there are posts (a feed or fallbackPosts)
-const hasPosts = fallbackPosts.length > 0 || substackFeed !== "";
 
 /* In-app physics: collapsing titles, rubber-band overscroll, pull-to-refresh, push views with
- * edge-swipe back, sheets with detents, swipe actions and sliding chip indicators. */
+ * edge-swipe back and sliding chip indicators. */
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => sessionStorage.setItem("pp-unlocked", "1"));
@@ -92,48 +88,9 @@ test("a detail view pushes over its app and swipes back from the left edge", asy
   await expect(page).toHaveURL(/#courses$/);
 });
 
-test("a sheet opens at medium, expands from its grabber and drags closed", async ({ page }) => {
-  await open(page, "expertise");
-  await screen(page).locator("ul button").first().click();
-  const grabber = page.getByRole("button", { name: "Expand sheet" });
-  await expect(grabber).toBeVisible();
-  await page.waitForTimeout(600);
-  await grabber.click();
-  await expect(page.getByRole("button", { name: "Shrink sheet" })).toBeVisible();
-  await page.waitForTimeout(600);
-  const g = (await page.locator("[data-grabber]").boundingBox())!;
-  const sheet = (await screen(page).boundingBox())!;
-  await drag(page, { x: g.x + g.width / 2, y: g.y + g.height / 2 }, { x: g.x + g.width / 2, y: sheet.y + sheet.height * 0.95 });
-  await expect(page.locator("[data-sheet]")).toHaveCount(0);
-  await expect(page).toHaveURL(/#expertise$/);
-});
-
-test("swiping a Blog row left reveals Share; a full swipe on a course opens Enroll", async ({ page, context }) => {
-  if (hasPosts) {
-    await open(page, "blog");
-    const row = page.locator("[data-swipe-row]").first();
-    await row.evaluate((el) => el.scrollIntoView({ block: "center" }));
-    await page.waitForTimeout(300);
-    const b = (await row.boundingBox())!;
-    await drag(page, { x: b.x + b.width * 0.8, y: b.y + b.height / 2 }, { x: b.x + b.width * 0.55, y: b.y + b.height / 2 }, 8);
-    await expect(page.getByRole("button", { name: "Share", exact: true })).toBeVisible();
-  }
-
-  await open(page, "courses");
-  await expect(page.getByRole("dialog", { name: "Courses" })).toBeVisible();
-  const course = page.locator("[data-swipe-row]").first();
-  await course.evaluate((el) => el.scrollIntoView({ block: "center" }));
-  await page.waitForTimeout(300);
-  const r = (await course.boundingBox())!;
-  const popup = context.waitForEvent("page");
-  await drag(page, { x: r.x + r.width * 0.9, y: r.y + r.height / 2 }, { x: r.x + r.width * 0.1, y: r.y + r.height / 2 });
-  // The enroll link (any course URL from content/courses.ts), or a blank tab still loading it
-  expect((await popup).url()).toMatch(/^https?:\/\/|^about:blank/);
-});
-
 test("the active chip's background slides to the chosen filter", async ({ page }) => {
-  await open(page, "projects");
-  const group = page.getByRole("group", { name: "Filter projects" });
+  await open(page, "reviews/all");
+  const group = page.getByRole("group", { name: "Filter by course" });
   const chips = group.getByRole("button");
   await chips.nth(1).click();
   await expect(chips.nth(1)).toHaveAttribute("aria-pressed", "true");

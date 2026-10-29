@@ -12,13 +12,13 @@ import { lazyComponent, type Lazy } from "@/lib/lazy";
 function Loading() {
   return (
     <div aria-hidden className="absolute inset-0 bg-app-background px-4 pt-[max(env(safe-area-inset-top),12px)] tab:pt-[7cqh]">
-      <div className="h-[38px]">
-        <span className="block size-[34px] rounded-full bg-app-group" />
+      <div className="h-[44px]">
+        <span className="block size-[44px] rounded-full bg-app-group" />
       </div>
       <span className="mt-3 block h-[34px] w-[46%] rounded-[10px] bg-app-group" />
       <span className="mt-2 block h-[14px] w-[64%] rounded-full bg-app-group" />
       <span className="mt-6 block aspect-[16/10] rounded-[18px] bg-app-group" />
-      <span className="mt-5 block h-[120px] rounded-[14px] bg-app-group" />
+      <span className="mt-5 block h-[120px] rounded-ios-xxl bg-app-group" />
     </div>
   );
 }

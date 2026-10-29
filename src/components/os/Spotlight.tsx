@@ -144,8 +144,8 @@ function SpotlightPanel({ open }: { open: boolean }) {
         id: `svc-${s.id}`,
         kind: "Services",
         title: s.title,
-        subtitle: s.description.slice(0, 70) + "…",
-        run: () => openApp("services"),
+        subtitle: s.summary,
+        run: () => openApp("services", s.id),
       })),
       ...platforms.primary.map((p) => ({
         id: `plat-${p.name}`,
@@ -196,8 +196,8 @@ function SpotlightPanel({ open }: { open: boolean }) {
         style={{ y: panelY, opacity: panelOpacity }}
         className="relative mx-4 mt-[max(env(safe-area-inset-top),14px)] tab:mt-[7.5cqh]"
       >
-        <label className="glass flex h-11 items-center gap-2 rounded-[14px] px-3 text-app-ink shadow-lg">
-          <Glyph name="search" className="size-4 text-app-muted" />
+        <label className="glass flex h-12 items-center gap-1.5 rounded-full pr-2.5 pl-[11px] text-app-ink shadow-lg">
+          <Glyph name="search" className="size-[18px] text-app-muted" />
           <span className="sr-only">Search apps, courses, projects and posts</span>
           <input
             ref={inputRef}
@@ -223,18 +223,18 @@ function SpotlightPanel({ open }: { open: boolean }) {
             aria-expanded="true"
             aria-controls="spotlight-results"
             aria-activedescendant={results[active] ? `sl-${results[active].id}` : undefined}
-            className="h-full flex-1 bg-transparent text-[16px] outline-none placeholder:text-app-muted"
+            className="h-full flex-1 bg-transparent text-[17px] outline-none placeholder:text-app-muted"
             autoComplete="off"
             spellCheck={false}
           />
-          <kbd className="hidden rounded-md border border-app-divider px-1.5 text-[11px] text-app-muted desk:inline">esc</kbd>
+          <kbd className="hidden rounded-full bg-ios-fill-tertiary px-2 py-0.5 text-[11px] text-app-muted desk:inline">esc</kbd>
         </label>
 
         <ul
           id="spotlight-results"
           role="listbox"
           aria-label="Results"
-          className="no-scrollbar glass mt-2 max-h-[64cqh] overflow-y-auto overscroll-contain rounded-[14px] p-1.5 text-app-ink shadow-lg"
+          className="no-scrollbar glass mt-2 max-h-[64cqh] overflow-y-auto overscroll-contain rounded-ios-xxl p-1.5 text-app-ink shadow-lg"
         >
           {results.length === 0 && <li className="px-3 py-3 text-[14px] text-app-muted">No results for “{query}”</li>}
           {results.map((r, i) => (
@@ -246,13 +246,13 @@ function SpotlightPanel({ open }: { open: boolean }) {
               onPointerEnter={() => setActive(i)}
               onClick={() => run(r)}
               className={cn(
-                "flex cursor-pointer items-center gap-3 rounded-[10px] px-3 py-2",
-                i === active && "bg-app-divider/60",
+                "flex cursor-pointer items-center gap-3 rounded-ios-xl px-3 py-2",
+                i === active && "bg-ios-fill-tertiary",
               )}
             >
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[14.5px] font-medium">{r.title}</span>
-                {r.subtitle && <span className="block truncate text-[12px] text-app-muted">{r.subtitle}</span>}
+                <span className="block truncate text-ios-subheadline font-medium">{r.title}</span>
+                {r.subtitle && <span className="block truncate text-ios-caption-1 text-app-muted">{r.subtitle}</span>}
               </span>
               <span className="shrink-0 text-[11px] font-medium text-app-muted">{r.kind}</span>
             </li>
