@@ -7,7 +7,9 @@ like a real phone. Below 600 px wide the site *is* the phone, and it installs to
 an app. Every section of your portfolio is an app. Everything you see is sample content for a
 made-up person, "Alex Rivera": change it in `content/*.ts` and it's yours.
 
-**New here? Read [START-HERE.md](START-HERE.md).**
+**New here? Read [START-HERE.md](START-HERE.md).** The step-by-step guide, *Build Your Own Pocket
+Portfolio with Claude Code* (PDF, 44 pages), is attached to the
+[v2.0.0 release](https://github.com/chetanpujari5105/pocket-portfolio-template/releases/tag/v2.0.0).
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fchetanpujari5105%2Fpocket-portfolio-template&project-name=pocket-portfolio&repository-name=pocket-portfolio&env=NEXT_PUBLIC_ICON_PACK,NEXT_PUBLIC_ENABLE_ASK&envDefaults=%7B%22NEXT_PUBLIC_ICON_PACK%22%3A%22original%22%2C%22NEXT_PUBLIC_ENABLE_ASK%22%3A%22false%22%7D&envDescription=Pre-filled%3A%20keep%20these%20as%20they%20are.%20Email%20for%20the%20contact%20form%20%28GMAIL_USER%2C%20GMAIL_APP_PASSWORD%2C%20CONTACT_TO_EMAIL%29%2C%20GITHUB_TOKEN%20and%20the%20rest%20are%20optional%3A%20add%20them%20later%20under%20Settings%20%3E%20Environment%20Variables.&envLink=https%3A%2F%2Fgithub.com%2Fchetanpujari5105%2Fpocket-portfolio-template%23environment-variables)
 
